@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+*.tsbuildinfo
+
+# cloudflare
+.wrangler/
+.dev.vars
+
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# os / editor
+.DS_Store
+.vscode/
+.idea/

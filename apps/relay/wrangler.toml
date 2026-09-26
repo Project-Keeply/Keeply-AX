@@ -1,0 +1,8 @@
+name = "keeply-ax-relay"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[vars]
+DISCORD_PUBLIC_KEY = "2bb1a537791a9bfe0ab1943567cafeee97480000d83c6567cb275624a435fe38"
+ALLOWED_GUILD_IDS = "1551189816585101323"
+ALLOWED_CHANNEL_IDS = "1553428629231374346"

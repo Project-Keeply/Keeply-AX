@@ -40,6 +40,37 @@ pnpm install
 pnpm typecheck
 ```
 
+## relay (Discord 요청 중계 Worker)
+
+`apps/relay`는 Discord Interactions 요청의 Ed25519 서명을 검증하고, 허용된 서버·채널의 `/ask`에 대해 즉시 "확인 중"(deferred) 응답을 반환합니다. 허용 목록과 공개 키는 `apps/relay/wrangler.toml`의 `[vars]`에서 관리합니다(쉼표로 여러 개 지정 가능).
+
+### 배포
+
+```bash
+pnpm --filter @keeply-ax/relay run deploy
+```
+
+배포 후 출력된 Worker URL을 Discord Developer Portal → General Information → **Interactions Endpoint URL**에 등록합니다. 저장 시 Discord가 PING을 보내 서명 검증을 확인합니다.
+
+### 슬래시 커맨드 등록
+
+저장소 루트에 `.env`를 만들고 봇 토큰을 넣은 뒤 등록 스크립트를 실행합니다. (`.env`는 커밋하지 않습니다.)
+
+```bash
+# .env
+DISCORD_BOT_TOKEN=...
+# 선택: DISCORD_APPLICATION_ID, DISCORD_GUILD_ID 로 기본값 덮어쓰기
+
+pnpm --filter @keeply-ax/relay register
+```
+
+### 테스트
+
+```bash
+pnpm test                               # 전체
+pnpm --filter @keeply-ax/relay test     # relay만
+```
+
 ## 기술 스택
 
 - TypeScript, pnpm workspace, Node 22

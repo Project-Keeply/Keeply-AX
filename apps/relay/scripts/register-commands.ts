@@ -44,7 +44,9 @@ const registerCommands = async () => {
   });
 
   if (!response.ok) {
+    const errorBody = await response.text();
     console.error(`커맨드 등록 실패 (status ${response.status})`);
+    console.error(errorBody);
     process.exit(1);
   }
   console.log(`커맨드 등록 성공 (status ${response.status})`);

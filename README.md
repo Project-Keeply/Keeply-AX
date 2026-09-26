@@ -47,7 +47,7 @@ pnpm typecheck
 ### 배포
 
 ```bash
-pnpm --filter @keeply-ax/relay deploy
+pnpm --filter @keeply-ax/relay run deploy
 ```
 
 배포 후 출력된 Worker URL을 Discord Developer Portal → General Information → **Interactions Endpoint URL**에 등록합니다. 저장 시 Discord가 PING을 보내 서명 검증을 확인합니다.

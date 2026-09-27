@@ -19,18 +19,22 @@ const DEFAULT_CLARIFICATION_QUESTION = '어떤 기능을 확인할까요?';
 const OUT_OF_SCOPE_ANSWER = `🙏 기능 구현 현황에 대한 질문만 답할 수 있어요.
 예: "회원가입 어디까지 구현됐어?"`;
 
+// 모델이 저장소·키워드를 비워 보내면 값 없는 줄 대신 해당 줄을 생략한다.
 const createClearAnswer = (intent: AskIntent): string => {
-  const subFeatureLine = intent.sub_features.length > 0 ? `\n• 세부 기능: ${intent.sub_features.join(', ')}` : '';
+  const { feature_name, sub_features, target_repositories, search_keywords } = intent;
   const questionTypeLabel = QUESTION_TYPE_LABEL[intent.question_type as Exclude<AskIntent['question_type'], 'out_of_scope'>];
-  const targetRepositoryLabels = intent.target_repositories.map((repository) => TARGET_REPOSITORY_LABEL[repository]).join(', ');
-  const searchKeywords = intent.search_keywords.join(', ');
+  const targetRepositoryLabels = target_repositories.map((repository) => TARGET_REPOSITORY_LABEL[repository]).join(', ');
+  const lines = [
+    '🔎 질문을 이렇게 이해했어요',
+    `• 기능: ${feature_name}`,
+    sub_features.length > 0 ? `• 세부 기능: ${sub_features.join(', ')}` : null,
+    `• 궁금한 점: ${questionTypeLabel}`,
+    target_repositories.length > 0 ? `• 확인할 저장소: ${targetRepositoryLabels}` : null,
+    search_keywords.length > 0 ? `• 검색 키워드: ${search_keywords.join(', ')}` : null,
+    '(다음 단계에서 GitHub 근거를 확인할 예정이에요.)',
+  ];
 
-  return `🔎 질문을 이렇게 이해했어요
-• 기능: ${intent.feature_name}${subFeatureLine}
-• 궁금한 점: ${questionTypeLabel}
-• 확인할 저장소: ${targetRepositoryLabels}
-• 검색 키워드: ${searchKeywords}
-(다음 단계에서 GitHub 근거를 확인할 예정이에요.)`;
+  return lines.filter((line): line is string => line !== null).join('\n');
 };
 
 // 모델이 되묻기 문구·선택지를 비워 보내도 깨진 메시지("🤔 null", 빈 목록 줄)가 나가지 않도록 방어한다.

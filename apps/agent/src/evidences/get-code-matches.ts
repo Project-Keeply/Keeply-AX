@@ -31,7 +31,8 @@ export interface CodeMatch {
 }
 
 interface RgExecError {
-  code?: number;
+  // 프로세스가 실행되면 exit code(number), 실행 파일을 못 찾으면 시스템 오류 코드(예: 'ENOENT')가 담긴다.
+  code?: number | string;
   stdout?: string;
   stderr?: string;
 }
@@ -64,7 +65,7 @@ const runRipgrepForKeyword = async (keyword: string, checkoutDir: string): Promi
     if (isRgExecError(error) && error.code === 1) {
       return [];
     }
-    if (isRgExecError(error) && error.code === undefined) {
+    if (isRgExecError(error) && error.code === 'ENOENT') {
       throw new Error(`ripgrep(rg) 실행 파일을 찾을 수 없습니다. rg가 설치되어 있는지 확인하세요.`);
     }
     // 키워드는 질문에서 파생되므로 오류 메시지(= Actions 로그)에 포함하지 않는다.

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getCodeMatches } from './get-code-matches';
+import type { RepositoryKey } from './target-repositories';
 
 type JavaLayer = 'controller' | 'service' | 'repository' | 'entity' | 'unknown';
 
@@ -108,3 +109,7 @@ export const getClientCallFlow = async (matchedFilePath: string, checkoutDir: st
 
   return [importerMatch.path, matchedFilePath];
 };
+
+/** 저장소 종류에 따라 서버/클라이언트 호출 흐름 추적 함수로 분기한다. */
+export const getCallFlow = (repositoryKey: RepositoryKey, matchedFilePath: string, checkoutDir: string): Promise<string[]> =>
+  repositoryKey === 'server' ? getServerCallFlow(matchedFilePath, checkoutDir) : getClientCallFlow(matchedFilePath, checkoutDir);

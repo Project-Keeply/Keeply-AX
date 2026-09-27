@@ -1,4 +1,4 @@
-export type { AskDispatchInputs } from './types/dispatch';
+export type { AskPayload } from './types/dispatch';
 export type {
   CodeEvidence,
   CommitEvidence,

@@ -10,7 +10,8 @@ import { getPullRequestFiles } from './get-pull-request-files';
 import { getRepositoryItems } from './get-repository-items';
 import { getTargetRepositoryConfig, type RepositoryKey } from './target-repositories';
 
-const DEFAULT_BRANCH_FALLBACK = 'develop';
+// 워크플로가 체크아웃한 브랜치(AX_TARGET_BRANCH)와 표시되는 브랜치가 항상 같도록 같은 값을 사용한다.
+const DEFAULT_BRANCH_FALLBACK = process.env.AX_TARGET_BRANCH ?? 'develop';
 const GIT_TIMEOUT_MS = 10_000;
 
 const MAX_CODE_EVIDENCE_COUNT = 12;

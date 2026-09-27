@@ -17,6 +17,9 @@ jobs:
   ask:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      # 근거 수집 대상 저장소를 체크아웃할 브랜치 (agent의 조회 브랜치 표시에도 같은 값을 사용)
+      AX_TARGET_BRANCH: develop
     steps:
       - name: 저장소 체크아웃
         uses: actions/checkout@v4
@@ -27,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Project-Keeply/Keeply-Server
-          ref: develop
+          ref: ${{ env.AX_TARGET_BRANCH }}
           path: repos/server
           fetch-depth: 1
           persist-credentials: false
@@ -36,7 +39,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Project-Keeply/Keeply-client
-          ref: develop
+          ref: ${{ env.AX_TARGET_BRANCH }}
           path: repos/client
           fetch-depth: 1
           persist-credentials: false

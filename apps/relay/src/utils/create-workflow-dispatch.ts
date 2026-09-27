@@ -1,3 +1,6 @@
+/** GitHub API가 응답하지 않을 때 waitUntil이 끝나기 전에 오류 안내 경로로 넘어가기 위한 제한 시간 */
+const DISPATCH_TIMEOUT_MS = 10_000;
+
 interface CreateWorkflowDispatchParams {
   owner: string;
   repo: string;
@@ -17,6 +20,7 @@ export const createWorkflowDispatch = async ({
 }: CreateWorkflowDispatchParams): Promise<void> => {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`, {
     method: 'POST',
+    signal: AbortSignal.timeout(DISPATCH_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',

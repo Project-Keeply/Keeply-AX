@@ -14,6 +14,8 @@ const TARGET_REPOSITORY_LABEL: Record<AskIntent['target_repositories'][number], 
   client: 'Client',
 };
 
+const DEFAULT_CLARIFICATION_QUESTION = '어떤 기능을 확인할까요?';
+
 const OUT_OF_SCOPE_ANSWER = `🙏 기능 구현 현황에 대한 질문만 답할 수 있어요.
 예: "회원가입 어디까지 구현됐어?"`;
 
@@ -31,12 +33,12 @@ const createClearAnswer = (intent: AskIntent): string => {
 (다음 단계에서 GitHub 근거를 확인할 예정이에요.)`;
 };
 
-const createAmbiguousAnswer = (intent: AskIntent): string => {
-  const optionLines = intent.clarification_options.map((option) => `• ${option}`).join('\n');
+// 모델이 되묻기 문구·선택지를 비워 보내도 깨진 메시지("🤔 null", 빈 목록 줄)가 나가지 않도록 방어한다.
+const createAmbiguousAnswer = ({ clarification_question, clarification_options }: AskIntent): string => {
+  const questionLine = `🤔 ${clarification_question?.trim() || DEFAULT_CLARIFICATION_QUESTION}`;
+  const optionLines = clarification_options.filter((option) => option.trim()).map((option) => `• ${option}`);
 
-  return `🤔 ${intent.clarification_question}
-${optionLines}
-구체적인 기능 이름으로 다시 /ask 해주세요.`;
+  return [questionLine, ...optionLines, '구체적인 기능 이름으로 다시 /ask 해주세요.'].join('\n');
 };
 
 const truncateAnswer = (answer: string): string => {

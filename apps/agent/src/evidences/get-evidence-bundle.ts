@@ -133,7 +133,7 @@ const collectRepositoryEvidence = async (key: RepositoryKey, intent: AskIntent, 
   }));
 
   return {
-    evidences: [...issueEvidences, ...pullRequestEvidences, ...trimCodeEvidencesToBudget(codeEvidences)],
+    evidences: [...issueEvidences, ...pullRequestEvidences, ...codeEvidences],
     checkedRef: { repository, branch, commitSha },
   };
 };
@@ -150,6 +150,7 @@ export const getEvidenceBundle = async (intent: AskIntent, token: string): Promi
   const allEvidences = results.flatMap((result) => result.evidences);
   const codeEvidences = allEvidences.filter((evidence): evidence is CodeEvidence => evidence.kind === 'code');
   const nonCodeEvidences = allEvidences.filter((evidence) => evidence.kind !== 'code');
+  // 예산은 저장소별이 아니라 전체 근거를 점수순으로 비교해 한 번만 적용한다.
   const budgetedCodeEvidences = trimCodeEvidencesToBudget(codeEvidences);
 
   return {

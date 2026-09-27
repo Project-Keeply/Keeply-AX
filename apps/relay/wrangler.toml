@@ -13,5 +13,5 @@ GITHUB_REF = "develop"
 DISCORD_APPLICATION_ID = "1553430002102698084"
 
 # 아래 값은 시크릿이므로 이 파일에 두지 않고 `pnpm exec wrangler secret put <이름>`으로 등록한다.
-# GITHUB_TOKEN     - workflow_dispatch 호출용 GitHub PAT (repo, workflow 권한)
+# GITHUB_TOKEN     - workflow_dispatch 호출용 fine-grained PAT (Keeply-AX 저장소, Actions Read and write)
 # AX_PAYLOAD_KEY   - AskPayload 암호화 키 (openssl rand -base64 32)

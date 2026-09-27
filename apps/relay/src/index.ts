@@ -26,7 +26,9 @@ const dispatchAskWorkflow = async (payload: AskPayload, env: Env): Promise<void>
       payload: encryptedPayload,
       token: env.GITHUB_TOKEN,
     });
-  } catch {
+  } catch (error) {
+    // 에러 메시지에는 status·원인만 담기므로 토큰·질문은 로그에 남지 않는다.
+    console.error(`workflow dispatch 처리 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     await createFollowupError({ applicationId: env.DISCORD_APPLICATION_ID, interactionToken: payload.interaction_token });
   }
 };

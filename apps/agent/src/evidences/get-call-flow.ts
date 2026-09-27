@@ -64,6 +64,8 @@ export const getServerCallFlow = async (matchedFilePath: string, checkoutDir: st
   const controllerPath =
     layer === 'controller' ? matchedFilePath : await findFileContainingClass(checkoutDir, `class ${controllerClassName}`);
   const servicePath = await findFileContainingClass(checkoutDir, `${domain}Service`);
+  // Repository 참조는 인터페이스가 아니라 구현체(ServiceImpl)에 있으므로, 존재하면 구현체 내용을 우선 확인한다.
+  const serviceImplPath = await findFileContainingClass(checkoutDir, `class ${domain}ServiceImpl`);
   const repositoryPath = await findFileContainingClass(checkoutDir, `${domain}Repository`);
 
   if (!controllerPath || !servicePath || !repositoryPath) {
@@ -71,7 +73,7 @@ export const getServerCallFlow = async (matchedFilePath: string, checkoutDir: st
   }
 
   const controllerContent = await readFileSafely(path.join(checkoutDir, controllerPath));
-  const serviceContent = await readFileSafely(path.join(checkoutDir, servicePath));
+  const serviceContent = await readFileSafely(path.join(checkoutDir, serviceImplPath ?? servicePath));
 
   const isControllerReferencingService = controllerContent?.includes(serviceClassName) ?? false;
   const isServiceReferencingRepository = serviceContent?.includes(repositoryClassName) ?? false;

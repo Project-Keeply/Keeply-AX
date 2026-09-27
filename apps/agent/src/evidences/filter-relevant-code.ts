@@ -137,7 +137,8 @@ export const extractSnippet = async (checkoutDir: string, scoredFile: ScoredCode
     });
 
     codeLineCount += linesInRange.length;
-    previousRangeEnd = rangeEnd;
+    // 캡으로 잘린 경우에도 실제로 포함된 마지막 줄을 기준으로 삼는다.
+    previousRangeEnd = linesInRange[linesInRange.length - 1] ?? rangeEnd;
     segmentsIncluded += 1;
   }
 
@@ -146,7 +147,8 @@ export const extractSnippet = async (checkoutDir: string, scoredFile: ScoredCode
     score: scoredFile.score,
     snippet: snippetLines.join('\n'),
     startLine: firstRangeStart,
-    endLine: firstRangeEnd,
+    // 첫 구간이 40줄 캡보다 길면 스니펫에 실제로 포함된 마지막 줄까지만 가리킨다.
+    endLine: Math.min(firstRangeEnd, firstRangeStart + MAX_SNIPPET_LINES_PER_FILE - 1),
     extraSegmentCount: Math.max(0, segmentsIncluded - 1),
   };
 };

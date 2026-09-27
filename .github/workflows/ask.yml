@@ -39,3 +39,5 @@ jobs:
           AX_PAYLOAD: ${{ inputs.payload }}
           AX_PAYLOAD_KEY: ${{ secrets.AX_PAYLOAD_KEY }}
           DISCORD_APPLICATION_ID: ${{ vars.DISCORD_APPLICATION_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AX_INTENT_MODEL: ${{ vars.AX_INTENT_MODEL || 'claude-haiku-4-5' }}

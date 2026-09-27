@@ -6,11 +6,14 @@
   "scripts": {
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:intent": "tsx --env-file-if-exists=../../.env scripts/eval-intent.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@keeply-ax/shared": "workspace:*",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

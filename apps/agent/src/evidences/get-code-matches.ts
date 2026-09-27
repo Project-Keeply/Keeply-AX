@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { access } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -63,7 +64,8 @@ const runRipgrepForKeyword = async (keyword: string, checkoutDir: string): Promi
     if (isRgExecError(error) && error.code === undefined) {
       throw new Error(`ripgrep(rg) 실행 파일을 찾을 수 없습니다. rg가 설치되어 있는지 확인하세요.`);
     }
-    throw new Error(`ripgrep 검색 실패 (keyword: ${keyword}): ${String((error as RgExecError).stderr ?? error)}`);
+    // 키워드는 질문에서 파생되므로 오류 메시지(= Actions 로그)에 포함하지 않는다.
+    throw new Error(`ripgrep 검색 실패 (exit code ${isRgExecError(error) ? error.code : '알 수 없음'})`);
   }
 };
 
@@ -86,6 +88,12 @@ const parseRipgrepOutput = (stdout: string, keyword: string): CodeMatch[] =>
  * 키워드별로 개별 실행해 어떤 키워드가 매칭됐는지 보존한다.
  */
 export const getCodeMatches = async (keywords: string[], checkoutDir: string): Promise<CodeMatch[]> => {
+  // cwd가 없을 때도 execFile은 ENOENT를 내므로, rg 미설치로 오인하지 않도록 디렉터리부터 확인한다.
+  try {
+    await access(checkoutDir);
+  } catch {
+    throw new Error(`코드 검색 대상 디렉터리를 찾을 수 없습니다: ${checkoutDir}`);
+  }
   const matchesPerKeyword = await Promise.all(
     keywords.filter((keyword) => keyword.trim() !== '').map((keyword) => runRipgrepForKeyword(keyword, checkoutDir)),
   );

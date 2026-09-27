@@ -1,4 +1,6 @@
+import { type AskPayload, createEncryptedPayload } from '@keeply-ax/shared';
 import {
+  type APIChatInputApplicationCommandInteraction,
   type APIInteraction,
   type APIInteractionResponse,
   InteractionResponseType,
@@ -8,30 +10,67 @@ import { ASK_COMMAND_NAME, EPHEMERAL_FLAG, NOT_ALLOWED_CHANNEL_MESSAGE } from '.
 import type { Env } from './env';
 import { checkAllowedContext } from './utils/check-allowed-context';
 import { checkDiscordSignature } from './utils/check-discord-signature';
+import { createFollowupError } from './utils/create-followup-error';
 import { createJsonResponse } from './utils/create-json-response';
+import { createWorkflowDispatch } from './utils/create-workflow-dispatch';
+import { getAskQuestion } from './utils/get-ask-question';
 
-const getInteractionResponse = (interaction: APIInteraction, env: Env): APIInteractionResponse | null => {
-  if (interaction.type === InteractionType.Ping) {
-    return { type: InteractionResponseType.Pong };
-  }
-  if (interaction.type === InteractionType.ApplicationCommand && interaction.data.name === ASK_COMMAND_NAME) {
-    const isAllowed = checkAllowedContext({
-      guildId: interaction.guild_id,
-      channelId: interaction.channel?.id,
-      env,
+const dispatchAskWorkflow = async (payload: AskPayload, env: Env): Promise<void> => {
+  try {
+    const encryptedPayload = await createEncryptedPayload(payload, env.AX_PAYLOAD_KEY);
+    await createWorkflowDispatch({
+      owner: env.GITHUB_OWNER,
+      repo: env.GITHUB_REPO,
+      workflow: env.GITHUB_WORKFLOW,
+      ref: env.GITHUB_REF,
+      payload: encryptedPayload,
+      token: env.GITHUB_TOKEN,
     });
-    if (isAllowed) {
-      return { type: InteractionResponseType.DeferredChannelMessageWithSource };
-    }
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: NOT_ALLOWED_CHANNEL_MESSAGE, flags: EPHEMERAL_FLAG },
-    };
+  } catch {
+    await createFollowupError({ applicationId: env.DISCORD_APPLICATION_ID, interactionToken: payload.interaction_token });
   }
-  return null;
 };
 
-const handleFetch = async (request: Request, env: Env): Promise<Response> => {
+const getAskUserId = (interaction: APIChatInputApplicationCommandInteraction): string | null =>
+  interaction.member?.user.id ?? interaction.user?.id ?? null;
+
+interface AskInteractionResult {
+  response: APIInteractionResponse | null;
+  backgroundTask: Promise<void> | null;
+}
+
+const getAskInteractionResult = (interaction: APIChatInputApplicationCommandInteraction, env: Env): AskInteractionResult => {
+  const isAllowed = checkAllowedContext({ guildId: interaction.guild_id, channelId: interaction.channel?.id, env });
+  if (!isAllowed) {
+    return {
+      response: {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: { content: NOT_ALLOWED_CHANNEL_MESSAGE, flags: EPHEMERAL_FLAG },
+      },
+      backgroundTask: null,
+    };
+  }
+
+  const question = getAskQuestion(interaction.data);
+  const userId = getAskUserId(interaction);
+  if (!question || !userId) {
+    return { response: null, backgroundTask: null };
+  }
+
+  const payload: AskPayload = {
+    question,
+    interaction_token: interaction.token,
+    channel_id: interaction.channel?.id ?? '',
+    user_id: userId,
+  };
+
+  return {
+    response: { type: InteractionResponseType.DeferredChannelMessageWithSource },
+    backgroundTask: dispatchAskWorkflow(payload, env),
+  };
+};
+
+const handleFetch = async (request: Request, env: Env, ctx: ExecutionContext): Promise<Response> => {
   if (request.method !== 'POST') {
     return createJsonResponse({ error: 'Method Not Allowed' }, 405);
   }
@@ -45,13 +84,33 @@ const handleFetch = async (request: Request, env: Env): Promise<Response> => {
   if (!isValidSignature) {
     return createJsonResponse({ error: 'Invalid request signature' }, 401);
   }
+
+  let interaction: APIInteraction;
   try {
-    const interaction = JSON.parse(body) as APIInteraction;
-    const response = getInteractionResponse(interaction, env);
-    return response ? createJsonResponse(response) : createJsonResponse({ error: 'Unsupported interaction' }, 400);
+    interaction = JSON.parse(body) as APIInteraction;
   } catch {
     return createJsonResponse({ error: 'Bad Request' }, 400);
   }
+
+  if (interaction.type === InteractionType.Ping) {
+    return createJsonResponse({ type: InteractionResponseType.Pong } satisfies APIInteractionResponse);
+  }
+
+  if (interaction.type === InteractionType.ApplicationCommand && interaction.data.name === ASK_COMMAND_NAME) {
+    const { response, backgroundTask } = getAskInteractionResult(
+      interaction as APIChatInputApplicationCommandInteraction,
+      env,
+    );
+    if (!response) {
+      return createJsonResponse({ error: 'Bad Request' }, 400);
+    }
+    if (backgroundTask) {
+      ctx.waitUntil(backgroundTask);
+    }
+    return createJsonResponse(response);
+  }
+
+  return createJsonResponse({ error: 'Unsupported interaction' }, 400);
 };
 
 export default { fetch: handleFetch } satisfies ExportedHandler<Env>;

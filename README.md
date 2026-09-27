@@ -9,7 +9,7 @@ Discord /ask
   → relay (Cloudflare Worker): 서명 검증, 즉시 "확인 중"(deferred) 응답
      → 백그라운드에서 질문·interaction 정보를 AskPayload로 묶어 AES-256-GCM으로 암호화
      → GitHub workflow_dispatch(ask.yml) 호출 (입력값은 암호화된 payload 문자열 하나뿐)
-  → agent (GitHub Actions): payload 복호화 → (현재는) 에코 답변 생성
+  → agent (GitHub Actions): payload 복호화 → Claude로 질문 의도 분석(LLM #1) → (다음 단계에서 GitHub 근거 수집 예정)
   → Discord 원본 메시지를 답변으로 수정(edit)
 ```
 
@@ -56,6 +56,8 @@ pnpm typecheck
 | relay (Worker secret) | `AX_PAYLOAD_KEY` | AskPayload 암호화 키 |
 | Actions secret | `AX_PAYLOAD_KEY` | 위와 **동일한 값**. agent가 payload를 복호화할 때 사용 |
 | Actions variable | `DISCORD_APPLICATION_ID` | agent가 원본 메시지를 수정(edit)할 때 사용하는 애플리케이션 ID |
+| Actions secret | `ANTHROPIC_API_KEY` | agent가 질문 의도 분석(LLM #1)에서 Claude API를 호출할 때 사용 |
+| Actions variable | `AX_INTENT_MODEL` | (선택) 의도 분석에 쓸 모델 id. 지정하지 않으면 `claude-haiku-4-5` 사용 |
 
 `AX_PAYLOAD_KEY`는 32바이트를 base64로 인코딩한 문자열입니다.
 
@@ -104,7 +106,23 @@ pnpm --filter @keeply-ax/shared test    # shared만
 
 ## agent (GitHub Actions 파이프라인)
 
-`apps/agent`는 `.github/workflows/ask.yml`의 `workflow_dispatch`로 실행됩니다. `AX_PAYLOAD`(암호화된 payload)와 `AX_PAYLOAD_KEY`를 받아 복호화한 뒤, 로그에 interaction token이 남지 않도록 즉시 `::add-mask::`로 마스킹하고, 답변을 만들어 Discord 원본 메시지를 수정합니다. 현재는 실제 근거 수집·구현 상태 판정 없이 질문을 그대로 되돌려주는 에코 답변만 보냅니다(연결 테스트 단계).
+`apps/agent`는 `.github/workflows/ask.yml`의 `workflow_dispatch`로 실행됩니다. `AX_PAYLOAD`(암호화된 payload)와 `AX_PAYLOAD_KEY`를 받아 복호화한 뒤, 로그에 interaction token이 남지 않도록 즉시 `::add-mask::`로 마스킹합니다.
+
+### 질문 의도 분석 (LLM #1)
+
+`apps/agent/src/intents`에서 기획자의 질문을 Claude(`@anthropic-ai/sdk`의 `messages.parse` + `zodOutputFormat`)로 분석해 구조화된 `AskIntent`(질문 유형, 기능명, 확인할 저장소, 검색 키워드, 모호 여부 등)를 얻습니다. 이 단계는 질문에 직접 답하지 않고 분류·추출만 하며, 다음 단계(GitHub 근거 수집)가 이 결과를 입력으로 사용할 예정입니다.
+
+- 결과에 따라 `apps/agent/src/answers/create-intent-answer.ts`가 세 가지 Discord 답변(①의도 확인, ②명확화 재질문, ③범위 밖 안내) 중 하나를 만듭니다.
+- `apps/agent/src/intents/project-context.ts`는 Keeply-Server / Keeply-client 코드를 읽고 만든 도메인 용어집 **초안**입니다. 두 저장소의 도메인(패키지, 엔티티, 라우트 등)이 바뀌면 반드시 이 파일도 함께 갱신해야 합니다.
+- 로그에는 질문 원문, 분석 결과, API 키를 절대 남기지 않고 토큰 사용량(`의도 분석 완료 (input N / output M tokens)`)만 남깁니다.
+
+#### 평가 스크립트 (로컬 전용)
+
+```bash
+ANTHROPIC_API_KEY=... pnpm --filter @keeply-ax/agent run eval:intent
+```
+
+10개의 샘플 한국어 질문에 대해 실제 Claude API를 호출해 기대값과 비교하고 정확도·토큰 사용량을 출력합니다. CI에서는 실행하지 않으며, 실행당 약 $0.03(Haiku 4.5, 샘플 10개 기준 추정치)의 비용이 발생합니다.
 
 ## 기술 스택
 

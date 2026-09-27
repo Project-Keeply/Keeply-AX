@@ -18,6 +18,9 @@ const EXCLUDED_GLOBS = [
   '!**/__tests__/**',
   '!**/coverage/**',
   '!**/.history/**',
+  '!**/src/test/**',
+  '!**/*Test.java',
+  '!**/*Tests.java',
 ];
 
 export interface CodeMatch {

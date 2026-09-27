@@ -9,11 +9,9 @@ const SNIPPET_CONTEXT_LINES = 5;
 const WEIGHT_IDENTIFIER_KEYWORD = 3;
 const WEIGHT_PATH_CONTAINS_KEYWORD = 1.5;
 const WEIGHT_KOREAN_KEYWORD = 1;
-const TEST_FILE_PENALTY_MULTIPLIER = 0.2;
 
 const HAS_ASCII_LETTERS_PATTERN = /[A-Za-z]/;
 const HAS_KOREAN_PATTERN = /[가-힣]/;
-const IS_TEST_FILE_PATTERN = /(\.test\.|\.spec\.|[/\\]__tests__[/\\]|Test\.java$|Tests\.java$)/;
 
 // 코드 식별자 스타일 키워드(예: NoticeController)는 클래스/모듈명을 직접 가리키므로 높은 가중치를 준다.
 const isCodeIdentifierKeyword = (keyword: string): boolean => HAS_ASCII_LETTERS_PATTERN.test(keyword);
@@ -49,8 +47,7 @@ const getFileScore = (path_: string, matches: CodeMatch[]): number => {
     ? WEIGHT_PATH_CONTAINS_KEYWORD
     : 0;
 
-  const rawScore = keywordScore + pathBonus;
-  return IS_TEST_FILE_PATTERN.test(path_) ? rawScore * TEST_FILE_PENALTY_MULTIPLIER : rawScore;
+  return keywordScore + pathBonus;
 };
 
 /**

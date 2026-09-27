@@ -129,14 +129,15 @@ describe('get-code-matches / filter-relevant-code / get-call-flow', () => {
     expect(matches).toEqual([]);
   });
 
-  it('테스트 파일은 점수가 낮아 상위권에서 밀린다', async () => {
+  it('테스트 코드는 검색 대상에서 완전히 제외된다', async () => {
     const matches = await getCodeMatches(['NoticeController'], checkoutDir);
+    expect(matches.some((match) => match.path.includes('src/test/'))).toBe(false);
+    expect(matches.some((match) => match.path.endsWith('NoticeControllerTest.java'))).toBe(false);
     const scoredFiles = scoreCodeFiles(matches);
     const controllerFile = scoredFiles.find((file) => file.path.endsWith('controller/NoticeController.java'));
     const testFile = scoredFiles.find((file) => file.path.endsWith('NoticeControllerTest.java'));
     expect(controllerFile).toBeDefined();
-    expect(testFile).toBeDefined();
-    expect(controllerFile!.score).toBeGreaterThan(testFile!.score);
+    expect(testFile).toBeUndefined();
   });
 
   it('스니펫은 매칭 라인 주변을 포함하고 40줄을 넘지 않는다', async () => {

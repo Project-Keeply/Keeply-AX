@@ -1,4 +1,6 @@
-export type { AskDispatchInputs } from './types/dispatch';
+export { ASK_PROCESSING_FAILED_MESSAGE } from './constants/messages';
+export type { AskPayload } from './types/dispatch';
+export { createEncryptedPayload, getDecryptedPayload } from './utils/payload-crypto';
 export type {
   CodeEvidence,
   CommitEvidence,

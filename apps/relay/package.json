@@ -10,6 +10,9 @@
     "test": "vitest run",
     "register": "tsx --env-file=../../.env scripts/register-commands.ts"
   },
+  "dependencies": {
+    "@keeply-ax/shared": "workspace:*"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260926.1",
     "@types/node": "^26.6.3",

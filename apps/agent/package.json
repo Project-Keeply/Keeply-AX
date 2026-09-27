@@ -1,16 +1,19 @@
 {
-  "name": "@keeply-ax/shared",
+  "name": "@keeply-ax/agent",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
+    "start": "tsx src/main.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@keeply-ax/shared": "workspace:*",
+    "tsx": "^4.23.15"
+  },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "vitest": "^5.0.2"
   }
 }

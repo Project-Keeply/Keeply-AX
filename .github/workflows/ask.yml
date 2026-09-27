@@ -1,0 +1,41 @@
+name: ask
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'relay Worker가 AES-GCM으로 암호화한 AskPayload (base64)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ask:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: pnpm 설치
+        uses: pnpm/action-setup@v4
+
+      - name: Node 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile --filter @keeply-ax/agent...
+
+      - name: agent 실행
+        run: pnpm --filter @keeply-ax/agent start
+        env:
+          AX_PAYLOAD: ${{ inputs.payload }}
+          AX_PAYLOAD_KEY: ${{ secrets.AX_PAYLOAD_KEY }}
+          DISCORD_APPLICATION_ID: ${{ vars.DISCORD_APPLICATION_ID }}

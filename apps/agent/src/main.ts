@@ -5,8 +5,7 @@ import { editOriginalMessage } from './discords/edit-original-message';
 const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
   if (!value) {
-    console.error(`${name} 환경 변수가 설정되지 않았습니다.`);
-    process.exit(1);
+    throw new Error(`${name} 환경 변수가 설정되지 않았습니다.`);
   }
   return value;
 };

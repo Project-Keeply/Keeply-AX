@@ -7,7 +7,8 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run",
-    "eval:intent": "tsx --env-file-if-exists=../../.env scripts/eval-intent.ts"
+    "eval:intent": "tsx --env-file-if-exists=../../.env scripts/eval-intent.ts",
+    "collect:evidence": "tsx --env-file-if-exists=../../.env scripts/collect-evidence.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

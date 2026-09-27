@@ -9,7 +9,8 @@ Discord /ask
   → relay (Cloudflare Worker): 서명 검증, 즉시 "확인 중"(deferred) 응답
      → 백그라운드에서 질문·interaction 정보를 AskPayload로 묶어 AES-256-GCM으로 암호화
      → GitHub workflow_dispatch(ask.yml) 호출 (입력값은 암호화된 payload 문자열 하나뿐)
-  → agent (GitHub Actions): payload 복호화 → Claude로 질문 의도 분석(LLM #1) → (다음 단계에서 GitHub 근거 수집 예정)
+  → agent (GitHub Actions): payload 복호화 → Claude로 질문 의도 분석(LLM #1)
+     → out_of_scope/모호한 질문이 아니면 GitHub 근거 수집(이슈·PR·코드, LLM 미사용) → (다음 단계에서 구현 상태 판정 예정)
   → Discord 원본 메시지를 답변으로 수정(edit)
 ```
 
@@ -58,6 +59,7 @@ pnpm typecheck
 | Actions variable | `DISCORD_APPLICATION_ID` | agent가 원본 메시지를 수정(edit)할 때 사용하는 애플리케이션 ID |
 | Actions secret | `ANTHROPIC_API_KEY` | agent가 질문 의도 분석(LLM #1)에서 Claude API를 호출할 때 사용 |
 | Actions variable | `AX_INTENT_MODEL` | (선택) 의도 분석에 쓸 모델 id. 지정하지 않으면 `claude-haiku-4-5` 사용 |
+| Actions (기본 제공) | `GITHUB_TOKEN` | GitHub 근거 수집(이슈·PR·PR 변경 파일 조회)에서 사용. 별도 등록 불필요 — Actions가 job마다 자동 발급하는 토큰을 그대로 쓴다 (`ask.yml`의 `permissions: issues: read, pull-requests: read`) |
 
 `AX_PAYLOAD_KEY`는 32바이트를 base64로 인코딩한 문자열입니다.
 
@@ -123,6 +125,38 @@ ANTHROPIC_API_KEY=... pnpm --filter @keeply-ax/agent run eval:intent
 ```
 
 10개의 샘플 한국어 질문에 대해 실제 Claude API를 호출해 기대값과 비교하고 정확도·토큰 사용량을 출력합니다. CI에서는 실행하지 않으며, 실행당 약 $0.03(Haiku 4.5, 샘플 10개 기준 추정치)의 비용이 발생합니다.
+
+### GitHub 근거 수집 (`apps/agent/src/evidences`)
+
+의도 분석 결과가 `out_of_scope`이거나 모호(`is_ambiguous`)하면 근거 수집을 건너뛰고 기존 의도 답변을 그대로 보냅니다. 그 외에는 LLM 호출 없이 순수 GitHub REST API(Actions 기본 `GITHUB_TOKEN`)와 워크플로에서 체크아웃해 둔 로컬 저장소(`repos/server`, `repos/client`)만으로 근거를 모읍니다.
+
+1. **이슈·PR 목록 조회** (`get-repository-items.ts`): `/issues`(PR 포함 — `pull_request` 필드로 순수 이슈만 분리), `/pulls`를 각각 페이지네이션해 전부 가져옵니다.
+2. **관련도 선별** (`filter-relevant-items.ts`): 제목(가중치 높음) > 브랜치명 > 라벨 > 본문(가중치 낮음) 순으로 키워드 매칭 점수를 매겨 이슈·PR 각각 상위 5개(점수 0 초과만)를 고릅니다.
+3. **열린 PR 변경 파일 조회** (`get-pull-request-files.ts`): 선별된 열린 PR만 `/pulls/{n}/files`로 변경 파일 목록을 가져와 이후 "작업 중 PR에서 변경" 판정에 사용합니다.
+4. **코드 검색** (`get-code-matches.ts`): 로컬 체크아웃 디렉터리에서 `ripgrep(rg)`을 키워드별로 실행합니다(`--fixed-strings --ignore-case`, `node_modules`/`build`/`dist`/`test` 등 제외). rg의 "매칭 없음"(exit code 1)은 에러가 아니라 빈 결과로 처리합니다.
+5. **코드 관련도 선별 + 스니펫 추출** (`filter-relevant-code.ts`): 파일 단위로 점수를 합산합니다 — 코드 식별자 키워드(예: `NoticeController`, ASCII 문자 포함) 매칭은 높은 가중치, 경로에 키워드 포함 시 가산점, 한글 키워드 매칭은 낮은 가중치, 테스트 파일은 점수에 페널티(×0.2)를 줍니다. 저장소당 상위 파일을 골라 매칭 라인 주변 ±5줄을 병합한 스니펫을 파일당 최대 40줄로 추출합니다.
+6. **호출 흐름 추적** (`get-call-flow.ts`, 휴리스틱):
+   - **Server**: 파일 경로로 계층(controller/service/repository)을 판별하고, 클래스명에서 도메인 접두사(`NoticeController` → `Notice`)를 추출합니다. `{도메인}Controller`/`{도메인}Service`/`{도메인}ServiceImpl`/`{도메인}Repository` 파일이 실제로 존재하고, Controller 파일 내용에 Service 클래스명이, ServiceImpl(또는 인터페이스) 파일 내용에 Repository 클래스명이 등장할 때만 `Controller → Service → Repository` 체인을 만듭니다. 하나라도 확인되지 않으면 빈 배열입니다.
+   - **Client**: `entities/{모듈}` 또는 `features/{모듈}` 경로에서 모듈 세그먼트를 뽑아, 그 문자열을 import하는 `pages/`·`app/` 하위 파일을 찾아 `[페이지 파일, 모듈 파일]` 체인을 만듭니다. 못 찾으면 빈 배열입니다.
+   - 두 휴리스틱 모두 이름 규칙(관례)과 정적 문자열 매칭에 기반하므로, 관례를 벗어난 코드(다른 네이밍, 동적 import, DI 프레임워크의 리플렉션 기반 연결 등)는 흐름을 못 찾을 수 있습니다.
+7. **근거 묶음 생성 + 예산 제한** (`get-evidence-bundle.ts`): 저장소별로 위 단계를 병렬 실행해 `EvidenceBundle`로 합칩니다. 코드 근거는 전체 최대 12개, 스니펫 총 글자수 30,000자를 넘지 않도록 점수 낮은 항목부터 잘라냅니다(`trimCodeEvidencesToBudget`). `checkedRefs`에는 실제로 조회한 저장소·브랜치·HEAD 커밋 SHA를 기록합니다.
+8. **Discord 요약** (`answers/create-evidence-answer.ts`): 이슈/PR/코드 섹션을 조립하고(빈 섹션은 생략), 무엇도 못 찾으면 전용 안내 메시지를 보냅니다. 이 요약은 E2E 확인용이며, 기획자에게 보여줄 최종 판정 답변은 다음 단계(이슈 #9)에서 만듭니다.
+
+**전제·한계**
+
+- 두 대상 저장소가 **public**이라 Actions 기본 `GITHUB_TOKEN`으로 이슈·PR API를 호출할 수 있습니다. 저장소가 private으로 바뀌면 별도 권한을 가진 GitHub App(또는 PAT)이 필요합니다.
+- 관련도 점수·호출 흐름은 모두 규칙 기반 휴리스틱이며 LLM을 쓰지 않습니다. 키워드가 코드/제목과 겹치지 않으면(동의어, 오타 등) 근거를 놓칠 수 있습니다.
+- 예산: 이슈·PR 각 최대 5개, 코드 근거 최대 12개, 코드 스니펫 파일당 최대 40줄·전체 최대 30,000자.
+
+### 로컬 근거 수집 스크립트 (로컬 전용)
+
+```bash
+# GITHUB_TOKEN 환경 변수가 없으면 `gh auth token`으로 대체합니다.
+# 기본적으로 ../../../keeply-server, ../../../keeply-client 체크아웃을 사용합니다 (AX_SERVER_DIR/AX_CLIENT_DIR로 override 가능).
+ANTHROPIC_API_KEY=... pnpm --filter @keeply-ax/agent run collect:evidence "공지사항 기능 어디까지 구현됐어?"
+```
+
+의도 분석 → 근거 수집을 실제로 실행해 Discord 요약과 코드 근거 상세 표(점수·흐름 포함)를 출력합니다. CI에서는 실행하지 않으며 Claude API 비용이 발생합니다.
 
 ## 기술 스택
 

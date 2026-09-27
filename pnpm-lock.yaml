@@ -12,6 +12,25 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  apps/agent:
+    dependencies:
+      '@keeply-ax/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.3
+        version: 26.6.3
+      discord-api-types:
+        specifier: ^0.38.55
+        version: 0.38.55
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@types/node@26.6.3)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(tsx@4.23.15))
+
   apps/relay:
     dependencies:
       '@keeply-ax/shared':

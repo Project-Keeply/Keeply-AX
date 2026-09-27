@@ -75,7 +75,7 @@ const fetchGithubJson = async <T>(url: string, token: string): Promise<T> => {
   return (await response.json()) as T;
 };
 
-const fetchAllPages = async <T>(baseUrl: string, token: string): Promise<T[]> => {
+export const fetchAllPages = async <T>(baseUrl: string, token: string): Promise<T[]> => {
   const results: T[] = [];
   let page = 1;
   // GitHub REST 목록 API는 다음 페이지가 비어있을 때까지 순회한다 (Link 헤더 파싱 대신 단순 종료 조건 사용).

@@ -152,7 +152,7 @@ ANTHROPIC_API_KEY=... pnpm --filter @keeply-ax/agent run eval:intent
 
 ```bash
 # GITHUB_TOKEN 환경 변수가 없으면 `gh auth token`으로 대체합니다.
-# 기본적으로 ../../../keeply-server, ../../../keeply-client 체크아웃을 사용합니다 (AX_SERVER_DIR/AX_CLIENT_DIR로 override 가능).
+# 기본적으로 keeply-ax와 같은 폴더에 있는 keeply-server, keeply-client 체크아웃을 사용합니다 (AX_SERVER_DIR/AX_CLIENT_DIR로 override 가능).
 ANTHROPIC_API_KEY=... pnpm --filter @keeply-ax/agent run collect:evidence "공지사항 기능 어디까지 구현됐어?"
 ```
 

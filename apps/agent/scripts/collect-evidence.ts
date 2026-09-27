@@ -4,11 +4,12 @@
  *
  * 실행: pnpm --filter @keeply-ax/agent run collect:evidence "질문"
  *
- * 기본적으로 AX_SERVER_DIR/AX_CLIENT_DIR(또는 target-repositories.ts 기본값인
- * ../../../keeply-server, ../../../keeply-client)에 있는 로컬 체크아웃을 그대로 사용한다.
+ * AX_SERVER_DIR/AX_CLIENT_DIR이 없으면 keeply-ax와 같은 폴더에 있는 keeply-server, keeply-client
+ * 로컬 체크아웃을 기본으로 사용한다. (Actions 기본값인 repos/server, repos/client는 사용하지 않는다)
  * GITHUB_TOKEN 환경 변수가 없으면 `gh auth token`으로 대체한다.
  */
 import { execFile } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createEvidenceAnswer } from '../src/answers/create-evidence-answer';
 import { getEvidenceBundle } from '../src/evidences/get-evidence-bundle';
@@ -16,6 +17,14 @@ import { getAskIntent } from '../src/intents/get-ask-intent';
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_INTENT_MODEL = 'claude-haiku-4-5';
+// apps/agent/scripts 기준으로 keeply-ax의 상위 폴더(itc_Keeply)에 있는 형제 저장소
+const LOCAL_SERVER_DIR = fileURLToPath(new URL('../../../../keeply-server', import.meta.url));
+const LOCAL_CLIENT_DIR = fileURLToPath(new URL('../../../../keeply-client', import.meta.url));
+
+const setLocalRepositoryDirs = (): void => {
+  process.env.AX_SERVER_DIR ??= LOCAL_SERVER_DIR;
+  process.env.AX_CLIENT_DIR ??= LOCAL_CLIENT_DIR;
+};
 
 const getRequiredAnthropicApiKey = (): string => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -53,6 +62,7 @@ const printCodeEvidenceTable = (bundle: Awaited<ReturnType<typeof getEvidenceBun
 };
 
 const run = async (): Promise<void> => {
+  setLocalRepositoryDirs();
   const question = process.argv[2];
   if (!question) {
     console.error('사용법: pnpm --filter @keeply-ax/agent run collect:evidence "질문"');

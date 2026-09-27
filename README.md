@@ -52,7 +52,7 @@ pnpm typecheck
 
 | 위치 | 이름 | 용도 |
 |---|---|---|
-| relay (Worker secret) | `GITHUB_TOKEN` | `workflow_dispatch` 호출용 GitHub PAT (`repo`, `workflow` 권한) |
+| relay (Worker secret) | `GITHUB_TOKEN` | `workflow_dispatch` 호출용 fine-grained PAT (Repository: `Keeply-AX`만, 권한: Actions Read and write) |
 | relay (Worker secret) | `AX_PAYLOAD_KEY` | AskPayload 암호화 키 |
 | Actions secret | `AX_PAYLOAD_KEY` | 위와 **동일한 값**. agent가 payload를 복호화할 때 사용 |
 | Actions variable | `DISCORD_APPLICATION_ID` | agent가 원본 메시지를 수정(edit)할 때 사용하는 애플리케이션 ID |

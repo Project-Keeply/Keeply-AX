@@ -73,7 +73,7 @@ const parseRipgrepOutput = (stdout: string, keyword: string): CodeMatch[] =>
     .map((line) => {
       const firstColonIndex = line.indexOf(':');
       const secondColonIndex = line.indexOf(':', firstColonIndex + 1);
-      const path = line.slice(0, firstColonIndex);
+      const path = line.slice(0, firstColonIndex).replace(/^\.\//, '');
       const lineNumber = Number(line.slice(firstColonIndex + 1, secondColonIndex));
       const text = line.slice(secondColonIndex + 1);
       return { path, line: lineNumber, text, keyword };

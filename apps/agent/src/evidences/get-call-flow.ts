@@ -99,9 +99,12 @@ export const getClientCallFlow = async (matchedFilePath: string, checkoutDir: st
   const moduleSegment = segmentMatch[0];
 
   const matches = await getCodeMatches([moduleSegment], checkoutDir);
-  const importerMatch = matches.find((match) =>
-    CLIENT_IMPORTER_DIR_SEGMENTS.some((segment) => match.path.replace(/\\/g, '/').includes(`/${segment}/`)),
-  );
+  const importerMatch = matches.find((match) => {
+    const normalizedMatchPath = match.path.replace(/\\/g, '/');
+    return CLIENT_IMPORTER_DIR_SEGMENTS.some(
+      (segment) => normalizedMatchPath.startsWith(`${segment}/`) || normalizedMatchPath.includes(`/${segment}/`),
+    );
+  });
 
   if (!importerMatch) {
     return [];

@@ -30,6 +30,8 @@ export interface CodeFileSnippet {
   snippet: string;
   startLine: number;
   endLine: number;
+  /** 첫 구간 외에 스니펫에 추가로 포함된 구간 수 (Discord 표시용, 예: "L52-60 외 1곳") */
+  extraSegmentCount: number;
 }
 
 const getFileScore = (path_: string, matches: CodeMatch[]): number => {
@@ -94,8 +96,12 @@ const mergeLineRanges = (lines: number[], totalLines: number): Array<[number, nu
   return merged;
 };
 
+const createGapMarkerLine = (gapStart: number, gapEnd: number): string => `⋯ (L${gapStart}-${gapEnd} 생략)`;
+
 /**
- * 매칭 라인 주변 ±5줄을 합쳐 스니펫을 추출한다. 파일당 최대 40줄로 자른다.
+ * 매칭 라인 주변 ±5줄을 합쳐 스니펫을 추출한다.
+ * 떨어진(비연속) 구간이 여러 개면 각 줄에 실제 줄 번호를 붙이고, 구간 사이에는 생략 표시를 넣는다.
+ * startLine/endLine은 첫 구간의 범위만 가리킨다 (링크·정렬 기준). 코드 줄 수는 파일당 최대 40줄로 자른다.
  */
 export const extractSnippet = async (checkoutDir: string, scoredFile: ScoredCodeFile): Promise<CodeFileSnippet> => {
   const absolutePath = path.join(checkoutDir, scoredFile.path);
@@ -103,33 +109,45 @@ export const extractSnippet = async (checkoutDir: string, scoredFile: ScoredCode
   const fileLines = content.split('\n');
 
   const mergedRanges = mergeLineRanges(scoredFile.lines, fileLines.length);
+  const [firstRangeStart, firstRangeEnd] = mergedRanges[0] ?? [1, 1];
 
-  const collectedLines: string[] = [];
-  let startLine = mergedRanges[0]?.[0] ?? 1;
-  let endLine = startLine;
+  const snippetLines: string[] = [];
+  let codeLineCount = 0;
+  let previousRangeEnd: number | null = null;
+  let segmentsIncluded = 0;
 
   for (const [rangeStart, rangeEnd] of mergedRanges) {
-    if (collectedLines.length === 0) {
-      startLine = rangeStart;
-    }
-    for (let lineNumber = rangeStart; lineNumber <= rangeEnd; lineNumber += 1) {
-      if (collectedLines.length >= MAX_SNIPPET_LINES_PER_FILE) {
-        break;
-      }
-      collectedLines.push(fileLines[lineNumber - 1] ?? '');
-      endLine = lineNumber;
-    }
-    if (collectedLines.length >= MAX_SNIPPET_LINES_PER_FILE) {
+    if (codeLineCount >= MAX_SNIPPET_LINES_PER_FILE) {
       break;
     }
+
+    const linesInRange = Array.from({ length: rangeEnd - rangeStart + 1 }, (_, offset) => rangeStart + offset).slice(
+      0,
+      MAX_SNIPPET_LINES_PER_FILE - codeLineCount,
+    );
+    if (linesInRange.length === 0) {
+      break;
+    }
+
+    if (previousRangeEnd !== null) {
+      snippetLines.push(createGapMarkerLine(previousRangeEnd + 1, rangeStart - 1));
+    }
+    linesInRange.forEach((lineNumber) => {
+      snippetLines.push(`${lineNumber}: ${fileLines[lineNumber - 1] ?? ''}`);
+    });
+
+    codeLineCount += linesInRange.length;
+    previousRangeEnd = rangeEnd;
+    segmentsIncluded += 1;
   }
 
   return {
     path: scoredFile.path,
     score: scoredFile.score,
-    snippet: collectedLines.join('\n'),
-    startLine,
-    endLine,
+    snippet: snippetLines.join('\n'),
+    startLine: firstRangeStart,
+    endLine: firstRangeEnd,
+    extraSegmentCount: Math.max(0, segmentsIncluded - 1),
   };
 };
 

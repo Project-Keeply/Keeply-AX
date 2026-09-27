@@ -64,6 +64,7 @@ const SERVER_CODE: CodeEvidence = {
   snippet: '...',
   score: 10,
   isChangedInOpenPr: false,
+  extraSegmentCount: 0,
   flow: ['NoticeController', 'NoticeService', 'NoticeRepository'],
 };
 
@@ -79,6 +80,7 @@ const CLIENT_CODE: CodeEvidence = {
   snippet: '...',
   score: 4,
   isChangedInOpenPr: true,
+  extraSegmentCount: 0,
   flow: [],
 };
 

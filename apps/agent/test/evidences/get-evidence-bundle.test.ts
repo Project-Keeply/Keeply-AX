@@ -16,6 +16,7 @@ const createCodeEvidence = (overrides: Partial<CodeEvidence> = {}): CodeEvidence
   snippet: 'line',
   score: 1,
   isChangedInOpenPr: false,
+  extraSegmentCount: 0,
   flow: [],
   ...overrides,
 });

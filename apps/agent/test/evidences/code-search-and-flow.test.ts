@@ -104,6 +104,9 @@ describe('get-code-matches / filter-relevant-code / get-call-flow', () => {
       ["export const NoticeWrite = () => null;"].join('\n'),
     );
 
+    // 이름이 접두어로 겹치는 모듈 (features/notice ⊂ features/notice-write). 아무도 import하지 않는다.
+    await writeFixtureFile(checkoutDir, 'features/notice/index.ts', ['export const Notice = () => null;'].join('\n'));
+
     await writeFixtureFile(
       checkoutDir,
       'entities/announcement/api.ts',
@@ -159,6 +162,11 @@ describe('get-code-matches / filter-relevant-code / get-call-flow', () => {
   it('클라이언트 모듈을 import하는 page 파일을 찾아 흐름을 만든다', async () => {
     const flow = await getClientCallFlow('features/notice-write/index.ts', checkoutDir);
     expect(flow).toEqual(['pages/notice/NoticePage.tsx', 'features/notice-write/index.ts']);
+  });
+
+  it('이름이 접두어로 겹치는 다른 모듈의 import를 흐름으로 오인하지 않는다', async () => {
+    const flow = await getClientCallFlow('features/notice/index.ts', checkoutDir);
+    expect(flow).toEqual([]);
   });
 
   it('아무도 import하지 않는 모듈은 빈 흐름을 반환한다', async () => {

@@ -91,4 +91,31 @@ describe('createIntentAnswer', () => {
     expect(answer.length).toBeLessThanOrEqual(DISCORD_MESSAGE_MAX_LENGTH);
     expect(answer.endsWith('…')).toBe(true);
   });
+
+  describe('모델이 필드를 비워 보낸 경우', () => {
+    it('되묻기 문구가 null이면 기본 문구를 쓰고, 선택지가 비면 목록 줄을 생략한다', () => {
+      const answer = createIntentAnswer(
+        createBaseIntent({ is_ambiguous: true, clarification_question: null, clarification_options: [] }),
+      );
+      expect(answer).toBe(`🤔 어떤 기능을 확인할까요?
+구체적인 기능 이름으로 다시 /ask 해주세요.`);
+    });
+
+    it('공백뿐인 되묻기 문구·선택지도 비어 있는 것으로 처리한다', () => {
+      const answer = createIntentAnswer(
+        createBaseIntent({ is_ambiguous: true, clarification_question: '  ', clarification_options: [' ', '회원 가입'] }),
+      );
+      expect(answer).toBe(`🤔 어떤 기능을 확인할까요?
+• 회원 가입
+구체적인 기능 이름으로 다시 /ask 해주세요.`);
+    });
+
+    it('명확한 질문에서 저장소·키워드가 비면 해당 줄을 생략한다', () => {
+      const answer = createIntentAnswer(createBaseIntent({ target_repositories: [], search_keywords: [] }));
+      expect(answer).toBe(`🔎 질문을 이렇게 이해했어요
+• 기능: 유통기한 물품 관리
+• 궁금한 점: 구현 현황
+(다음 단계에서 GitHub 근거를 확인할 예정이에요.)`);
+    });
+  });
 });

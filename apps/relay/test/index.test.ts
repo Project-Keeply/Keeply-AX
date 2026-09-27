@@ -1,5 +1,5 @@
 import { InteractionResponseType, InteractionType, MessageFlags } from 'discord-api-types/v10';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import type { Env } from '../src/env';
 import { createSigningKey, type SigningKey } from './create-signing-key';
@@ -21,10 +21,7 @@ const createAskPayload = (channelId: string, options: unknown[] = [{ name: 'ques
 });
 
 /**
- * 백그라운드 작업(ctx.waitUntil)이 실제 GitHub/Discord 네트워크를 호출하지 않도록,
- * 이 테스트 파일 안에서만 fetch를 가로챈다. relay가 만든 요청(URL·payload)이 예상대로인지는
- * 검증하되, 실제 외부 API로는 절대 나가지 않는다. 서명 검증·암복호화 등 비즈니스 로직 자체는
- * 그대로 실행되며, 오직 마지막 네트워크 I/O만 가짜 응답으로 대체한다.
+ * 허용 채널의 /ask는 백그라운드에서 실제 GitHub·Discord API를 호출하므로 단위 테스트에서 다루지 않고 E2E로 검증한다.
  */
 const createWaitUntilCollector = () => {
   const backgroundTasks: Promise<unknown>[] = [];
@@ -64,10 +61,6 @@ describe('relay fetch', () => {
     };
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it('GET이면 405', async () => {
     expect((await getResponse(new Request(URL))).status).toBe(405);
   });
@@ -90,35 +83,6 @@ describe('relay fetch', () => {
     const response = await getResponse(await createSignedRequest({ type: InteractionType.Ping }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ type: InteractionResponseType.Pong });
-  });
-
-  it('허용 채널의 /ask면 type 5를 즉시 반환하고, 백그라운드에서 GitHub dispatch를 호출한다', async () => {
-    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
-      expect(String(input)).toContain('api.github.com');
-      return new Response(null, { status: 204 });
-    });
-    vi.stubGlobal('fetch', fetchSpy);
-    const { ctx, backgroundTasks } = createWaitUntilCollector();
-    const response = await getResponse(await createSignedRequest(createAskPayload(ALLOWED_CHANNEL_ID)), ctx);
-    expect(await response.json()).toEqual({ type: InteractionResponseType.DeferredChannelMessageWithSource });
-    expect(backgroundTasks).toHaveLength(1);
-    await Promise.all(backgroundTasks);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('GitHub dispatch가 실패하면 Discord followup 오류를 보낸다', async () => {
-    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
-      if (String(input).includes('api.github.com')) {
-        return new Response(null, { status: 500 });
-      }
-      expect(String(input)).toContain('discord.com/api');
-      return new Response(null, { status: 200 });
-    });
-    vi.stubGlobal('fetch', fetchSpy);
-    const { ctx, backgroundTasks } = createWaitUntilCollector();
-    await getResponse(await createSignedRequest(createAskPayload(ALLOWED_CHANNEL_ID)), ctx);
-    await Promise.all(backgroundTasks);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('다른 채널의 /ask면 ephemeral type 4', async () => {

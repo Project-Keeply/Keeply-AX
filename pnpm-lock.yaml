@@ -13,6 +13,10 @@ importers:
         version: 7.0.2
 
   apps/relay:
+    dependencies:
+      '@keeply-ax/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20260926.1

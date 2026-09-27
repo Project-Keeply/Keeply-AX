@@ -86,7 +86,6 @@ export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle):
     sections.push(`💻 코드 (${codeEvidences.length})`, ...codeEvidences.map(createCodeLine));
   }
 
-  sections.push(createCheckedRefsLine(bundle), NEXT_STEP_NOTE);
-
-  return truncateAnswer(sections.join('\n'));
+  // 조회 기준(브랜치·커밋·시각)은 답변 신뢰성의 필수 정보라, 근거 목록이 길어도 잘리지 않게 보존한다.
+  return truncateAnswer(sections.join('\n'), `\n${createCheckedRefsLine(bundle)}\n${NEXT_STEP_NOTE}`);
 };

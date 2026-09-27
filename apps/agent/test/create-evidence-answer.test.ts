@@ -127,14 +127,15 @@ describe('createEvidenceAnswer', () => {
     );
   });
 
-  it('2000자를 넘으면 안전하게 잘라낸다', () => {
+  it('2000자를 넘으면 근거 목록만 잘라내고 조회 기준·안내 문구는 유지한다', () => {
     const manyIssues: IssueEvidence[] = Array.from({ length: 200 }, (_, index) => ({
       ...ISSUE,
       number: index,
       title: `아주 긴 제목입니다 ${'가'.repeat(20)}`,
     }));
     const answer = createEvidenceAnswer(createIntent(), createBundle({ evidences: manyIssues }));
-    expect(answer.length).toBe(2000);
-    expect(answer.endsWith('…')).toBe(true);
+    expect(answer.length).toBeLessThanOrEqual(2000);
+    expect(answer).toContain('…\n🕐 조회: ');
+    expect(answer.endsWith('(다음 단계에서 구현 상태를 판정할 예정이에요.)')).toBe(true);
   });
 });

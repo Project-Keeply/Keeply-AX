@@ -7,7 +7,7 @@ export interface Env {
   GITHUB_WORKFLOW: string;
   GITHUB_REF: string;
   DISCORD_APPLICATION_ID: string;
-  /** 시크릿: `pnpm exec wrangler secret put GITHUB_TOKEN`으로 등록 (repo, workflow 권한 필요) */
+  /** 시크릿: `pnpm exec wrangler secret put GITHUB_TOKEN`으로 등록 (fine-grained PAT: Keeply-AX 저장소, Actions Read and write 권한) */
   GITHUB_TOKEN: string;
   /** 시크릿: `pnpm exec wrangler secret put AX_PAYLOAD_KEY`로 등록 (openssl rand -base64 32) */
   AX_PAYLOAD_KEY: string;

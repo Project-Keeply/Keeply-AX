@@ -87,6 +87,15 @@ export const getServerCallFlow = async (matchedFilePath: string, checkoutDir: st
 
 const CLIENT_MODULE_SEGMENT_PATTERN = /(entities|features)\/[^/]+/;
 const CLIENT_IMPORTER_DIR_SEGMENTS = ['pages', 'app'];
+// 모듈 경로 바로 뒤가 경로 구분자·따옴표·줄 끝일 때만 import로 인정한다 (features/notice ≠ features/notice-write).
+const IMPORT_PATH_BOUNDARY_CHARACTERS = ['/', "'", '"', '`'];
+
+const checkImportPathBoundary = (text: string, moduleSegment: string): boolean =>
+  text
+    .toLowerCase()
+    .split(moduleSegment.toLowerCase())
+    .slice(1)
+    .some((rest) => rest === '' || IMPORT_PATH_BOUNDARY_CHARACTERS.includes(rest.charAt(0)));
 
 /**
  * entities/ 또는 features/ 하위 모듈 파일에서, 그 모듈을 import하는 pages/ 또는 app/(라우트) 파일을 찾는다.
@@ -103,9 +112,10 @@ export const getClientCallFlow = async (matchedFilePath: string, checkoutDir: st
   const matches = await getCodeMatches([moduleSegment], checkoutDir);
   const importerMatch = matches.find((match) => {
     const normalizedMatchPath = match.path.replace(/\\/g, '/');
-    return CLIENT_IMPORTER_DIR_SEGMENTS.some(
+    const isImporterFile = CLIENT_IMPORTER_DIR_SEGMENTS.some(
       (segment) => normalizedMatchPath.startsWith(`${segment}/`) || normalizedMatchPath.includes(`/${segment}/`),
     );
+    return isImporterFile && checkImportPathBoundary(match.text, moduleSegment);
   });
 
   if (!importerMatch) {

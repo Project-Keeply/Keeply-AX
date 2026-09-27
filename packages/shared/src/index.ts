@@ -1,4 +1,5 @@
 export type { AskPayload } from './types/dispatch';
+export { createEncryptedPayload, getDecryptedPayload } from './utils/payload-crypto';
 export type {
   CodeEvidence,
   CommitEvidence,

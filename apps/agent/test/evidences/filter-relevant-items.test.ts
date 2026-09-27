@@ -37,17 +37,22 @@ describe('filterRelevantIssues', () => {
     expect(result[0]?.number).toBe(1);
   });
 
-  it('라벨·본문 매칭도 점수에 반영한다', () => {
+  it('라벨 매칭도 점수에 반영하고, 선정된 항목 사이 순위에는 본문 매칭도 반영한다', () => {
     const issues = [
       createIssue({ number: 1, title: '관련 없는 제목', labels: ['공지사항'] }),
-      createIssue({ number: 2, title: '관련 없는 제목', body: '공지사항 관련 내용' }),
+      createIssue({ number: 2, title: '관련 없는 제목', labels: ['공지사항'], body: '공지사항 관련 내용' }),
     ];
     const result = filterRelevantIssues(issues, ['공지사항']);
-    expect(result.map((issue) => issue.number).sort()).toEqual([1, 2]);
+    expect(result.map((issue) => issue.number)).toEqual([2, 1]);
   });
 
   it('점수가 0인 항목은 제외한다', () => {
     const issues = [createIssue({ title: '무관한 이슈' })];
+    expect(filterRelevantIssues(issues, ['공지사항'])).toHaveLength(0);
+  });
+
+  it('본문에만 키워드가 있고 제목·라벨에는 없는 이슈는 제외한다', () => {
+    const issues = [createIssue({ number: 1, title: '무관한 제목', body: '공지사항과 관련된 내용입니다' })];
     expect(filterRelevantIssues(issues, ['공지사항'])).toHaveLength(0);
   });
 

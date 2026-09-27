@@ -40,6 +40,8 @@ export interface CodeEvidence extends BaseEvidence {
   score: number;
   /** 이 파일이 열린 PR에서 변경 중인지 여부 */
   isChangedInOpenPr: boolean;
+  /** 첫 구간(startLine-endLine) 외에 스니펫에 추가로 포함된 떨어진 코드 구간 수 */
+  extraSegmentCount: number;
   /** 추정한 호출 흐름 체인 (예: ['NoticeController', 'NoticeService', 'NoticeRepository']). 연결을 찾지 못하면 빈 배열 */
   flow: string[];
 }

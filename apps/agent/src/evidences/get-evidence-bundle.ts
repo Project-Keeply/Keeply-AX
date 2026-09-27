@@ -106,6 +106,7 @@ const collectRepositoryEvidence = async (key: RepositoryKey, intent: AskIntent, 
         snippet: snippet.snippet,
         score: snippet.score,
         isChangedInOpenPr: openPullRequestChangedPaths.has(snippet.path),
+        extraSegmentCount: snippet.extraSegmentCount,
         flow,
       };
     }),

@@ -46,7 +46,8 @@ const createCodeSuffix = (code: CodeEvidence): string | null => {
 
 const createCodeLine = (code: CodeEvidence): string => {
   const suffix = createCodeSuffix(code);
-  const location = `${getFileName(code.path)} L${code.startLine}-${code.endLine}`;
+  const rangeText = `L${code.startLine}-${code.endLine}`;
+  const location = `${getFileName(code.path)} ${code.extraSegmentCount > 0 ? `${rangeText} 외 ${code.extraSegmentCount}곳` : rangeText}`;
   return `• [${getRepositoryLabel(code.repository)}] ${location}${suffix ? ` · ${suffix}` : ''}`;
 };
 

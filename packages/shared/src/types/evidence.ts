@@ -13,6 +13,7 @@ export interface IssueEvidence extends BaseEvidence {
   number: number;
   title: string;
   state: 'open' | 'closed';
+  labels: string[];
 }
 
 export interface PullRequestEvidence extends BaseEvidence {
@@ -22,6 +23,7 @@ export interface PullRequestEvidence extends BaseEvidence {
   state: 'open' | 'closed' | 'merged';
   baseBranch: string;
   headBranch: string;
+  mergedAt: string | null;
 }
 
 export interface CodeEvidence extends BaseEvidence {
@@ -32,6 +34,14 @@ export interface CodeEvidence extends BaseEvidence {
   /** 코드를 확인한 브랜치 (기본 브랜치 또는 PR head 브랜치) */
   branch: string;
   commitSha: string;
+  /** 매칭 주변으로 추출한 코드 조각 (최대 40줄) */
+  snippet: string;
+  /** 키워드 매칭 품질을 반영한 관련도 점수 */
+  score: number;
+  /** 이 파일이 열린 PR에서 변경 중인지 여부 */
+  isChangedInOpenPr: boolean;
+  /** 추정한 호출 흐름 체인 (예: ['NoticeController', 'NoticeService', 'NoticeRepository']). 연결을 찾지 못하면 빈 배열 */
+  flow: string[];
 }
 
 export interface CommitEvidence extends BaseEvidence {
@@ -41,3 +51,18 @@ export interface CommitEvidence extends BaseEvidence {
 }
 
 export type Evidence = IssueEvidence | PullRequestEvidence | CodeEvidence | CommitEvidence;
+
+/** 근거 수집 시 실제로 조회한 저장소·브랜치·커밋 */
+export interface CheckedRef {
+  repository: RepositoryRef;
+  branch: string;
+  commitSha: string;
+}
+
+/** 하나의 질문에 대해 수집한 근거 묶음 */
+export interface EvidenceBundle {
+  evidences: Evidence[];
+  checkedAt: string;
+  checkedRefs: CheckedRef[];
+  searchedRepositories: RepositoryRef[];
+}

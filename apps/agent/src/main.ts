@@ -1,9 +1,26 @@
 import { ASK_PROCESSING_FAILED_MESSAGE, getDecryptedPayload } from '@keeply-ax/shared';
+import { createEvidenceAnswer } from './answers/create-evidence-answer';
 import { createIntentAnswer } from './answers/create-intent-answer';
 import { editOriginalMessage } from './discords/edit-original-message';
+import { getEvidenceBundle } from './evidences/get-evidence-bundle';
+import type { AskIntent } from './intents/ask-intent-schema';
 import { getAskIntent } from './intents/get-ask-intent';
 
 const DEFAULT_INTENT_MODEL = 'claude-haiku-4-5';
+
+const getEvidenceAnswer = async (intent: AskIntent, githubToken: string): Promise<string> => {
+  const startedAt = Date.now();
+  const bundle = await getEvidenceBundle(intent, githubToken);
+  const elapsedMs = Date.now() - startedAt;
+
+  const issueCount = bundle.evidences.filter((evidence) => evidence.kind === 'issue').length;
+  const pullRequestCount = bundle.evidences.filter((evidence) => evidence.kind === 'pull_request').length;
+  const codeCount = bundle.evidences.filter((evidence) => evidence.kind === 'code').length;
+  // 질문·키워드·코드 스니펫은 로그에 남기지 않고 개수/소요시간만 남긴다.
+  console.log(`근거 수집 완료 (issues ${issueCount} / prs ${pullRequestCount} / code ${codeCount}, ${elapsedMs}ms)`);
+
+  return createEvidenceAnswer(intent, bundle);
+};
 
 const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
@@ -18,6 +35,7 @@ const main = async (): Promise<void> => {
   const payloadKey = getRequiredEnv('AX_PAYLOAD_KEY');
   const applicationId = getRequiredEnv('DISCORD_APPLICATION_ID');
   const anthropicApiKey = getRequiredEnv('ANTHROPIC_API_KEY');
+  const githubToken = getRequiredEnv('GITHUB_TOKEN');
   const intentModel = process.env.AX_INTENT_MODEL ?? DEFAULT_INTENT_MODEL;
 
   const payload = await getDecryptedPayload(encryptedPayload, payloadKey);
@@ -29,7 +47,9 @@ const main = async (): Promise<void> => {
     const { intent, usage } = await getAskIntent({ question: payload.question, apiKey: anthropicApiKey, model: intentModel });
     console.log(`의도 분석 완료 (input ${usage.inputTokens} / output ${usage.outputTokens} tokens)`);
 
-    const answer = createIntentAnswer(intent);
+    const isEvidenceCollectionSkipped = intent.question_type === 'out_of_scope' || intent.is_ambiguous;
+    const answer = isEvidenceCollectionSkipped ? createIntentAnswer(intent) : await getEvidenceAnswer(intent, githubToken);
+
     await editOriginalMessage({ applicationId, interactionToken: payload.interaction_token, content: answer });
     console.log('답변 전송 완료');
   } catch (error) {

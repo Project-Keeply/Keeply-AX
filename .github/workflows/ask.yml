@@ -10,15 +10,38 @@ on:
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
   ask:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      # 근거 수집 대상 저장소를 체크아웃할 브랜치 (agent의 조회 브랜치 표시에도 같은 값을 사용)
+      AX_TARGET_BRANCH: develop
     steps:
       - name: 저장소 체크아웃
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
+
+      - name: Keeply-Server 체크아웃 (근거 수집 대상)
+        uses: actions/checkout@v4
+        with:
+          repository: Project-Keeply/Keeply-Server
+          ref: ${{ env.AX_TARGET_BRANCH }}
+          path: repos/server
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Keeply-client 체크아웃 (근거 수집 대상)
+        uses: actions/checkout@v4
+        with:
+          repository: Project-Keeply/Keeply-client
+          ref: ${{ env.AX_TARGET_BRANCH }}
+          path: repos/client
+          fetch-depth: 1
           persist-credentials: false
 
       - name: pnpm 설치
@@ -41,3 +64,6 @@ jobs:
           DISCORD_APPLICATION_ID: ${{ vars.DISCORD_APPLICATION_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AX_INTENT_MODEL: ${{ vars.AX_INTENT_MODEL || 'claude-haiku-4-5' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # agent는 apps/agent를 작업 디렉터리로 실행되므로 체크아웃 경로를 절대 경로로 넘긴다.
+          AX_REPOS_DIR: ${{ github.workspace }}/repos

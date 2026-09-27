@@ -22,3 +22,6 @@ dist/
 
 # local history (VS Code Local History)
 .history/
+
+# 근거 수집 대상 저장소 체크아웃 (ask 워크플로/로컬 검증용, 커밋 대상 아님)
+/repos/

@@ -74,6 +74,13 @@ describe('Fix 2: 떨어진 코드 구간을 줄 번호·생략 표시로 구분�
       return `  // line ${lineNumber}`;
     });
     await writeFixtureFile(checkoutDir, 'ContiguousFile.java', contiguousLines.join('\n'));
+
+    // 매칭이 촘촘해 첫 구간 하나가 40줄 캡보다 긴 파일 (L1-55가 하나의 구간으로 병합된다)
+    const denseLines = Array.from({ length: 60 }, (_, index) => {
+      const lineNumber = index + 1;
+      return lineNumber % 5 === 0 && lineNumber <= 50 ? '  noticeService.getNotice(); // dense match' : `  // line ${lineNumber}`;
+    });
+    await writeFixtureFile(checkoutDir, 'DenseFile.java', denseLines.join('\n'));
   });
 
   afterAll(async () => {
@@ -102,6 +109,21 @@ describe('Fix 2: 떨어진 코드 구간을 줄 번호·생략 표시로 구분�
 
     const codeLineCount = snippet!.snippet.split('\n').filter((line) => !line.startsWith('⋯')).length;
     expect(codeLineCount).toBeLessThanOrEqual(40);
+  });
+
+  it('첫 구간이 40줄 캡보다 길면 endLine은 스니펫에 실제로 포함된 마지막 줄이다', async () => {
+    const matches = await getCodeMatches(['noticeService'], checkoutDir);
+    const denseFile = scoreCodeFiles(matches).find((file) => file.path === 'DenseFile.java');
+    expect(denseFile).toBeDefined();
+
+    const [snippet] = await extractSnippets(checkoutDir, [denseFile!]);
+    const snippetLines = snippet!.snippet.split('\n');
+    const lastIncludedLineNumber = Number(snippetLines[snippetLines.length - 1]!.split(':')[0]);
+
+    expect(snippet!.startLine).toBe(1);
+    expect(snippetLines).toHaveLength(40);
+    expect(snippet!.endLine).toBe(lastIncludedLineNumber);
+    expect(snippet!.endLine).toBe(40);
   });
 
   it('연속된(붙어있는) 구간은 생략 마커가 없고 extraSegmentCount가 0이다', async () => {

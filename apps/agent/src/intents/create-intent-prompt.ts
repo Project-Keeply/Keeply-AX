@@ -19,7 +19,9 @@ ${PROJECT_CONTEXT}
 - question_type: 질문이 "이 기능 어디까지 구현됐어?" 같은 진행 상황을 묻으면 implementation_status,
   "이 기능은 어떤 조건에서 동작해?"처럼 동작 방식/조건을 물으면 behavior, "이거 실제 서비스에
   배포됐어?"처럼 배포 여부를 물으면 deployment로 분류해. 기능 구현과 무관한 질문(잡담, 일반 지식,
-  Keeply와 상관없는 주제 등)은 out_of_scope로 분류해.
+  Keeply와 상관없는 주제 등)은 out_of_scope로 분류해. 단, "그거 다 됐어?"처럼 진행 상황·완료 여부·동작을
+  묻는 형태인데 대상 기능만 빠져 있는 질문은 out_of_scope가 아니야. 이런 질문은 묻는 방식에 맞는
+  question_type으로 분류하고 is_ambiguous를 true로 해서 어떤 기능인지 되물어.
 - feature_name: 질문이 가리키는 기능을 대표하는 이름 하나. sub_features: 그 기능을 이루는 더 작은
   단위나 파생 기능이 언급되면 배열로 담고, 없으면 빈 배열로 둬.
 - target_repositories: 질문이 API·비즈니스 로직·DB 저장 방식에 관한 것이면 server, 화면·UI·사용자

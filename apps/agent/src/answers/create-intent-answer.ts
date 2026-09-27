@@ -1,7 +1,5 @@
 import type { AskIntent } from '../intents/ask-intent-schema';
-
-const DISCORD_MESSAGE_MAX_LENGTH = 2000;
-const TRUNCATION_MARK = '…';
+import { truncateAnswer } from './truncate-answer';
 
 const QUESTION_TYPE_LABEL: Record<Exclude<AskIntent['question_type'], 'out_of_scope'>, string> = {
   implementation_status: '구현 현황',
@@ -43,13 +41,6 @@ const createAmbiguousAnswer = ({ clarification_question, clarification_options }
   const optionLines = clarification_options.filter((option) => option.trim()).map((option) => `• ${option}`);
 
   return [questionLine, ...optionLines, '구체적인 기능 이름으로 다시 /ask 해주세요.'].join('\n');
-};
-
-const truncateAnswer = (answer: string): string => {
-  if (answer.length <= DISCORD_MESSAGE_MAX_LENGTH) {
-    return answer;
-  }
-  return `${answer.slice(0, DISCORD_MESSAGE_MAX_LENGTH - TRUNCATION_MARK.length)}${TRUNCATION_MARK}`;
 };
 
 export const createIntentAnswer = (intent: AskIntent): string => {

@@ -11,5 +11,11 @@ export type {
   PullRequestEvidence,
   RepositoryRef,
 } from './types/evidence';
+export type {
+  ImplementationJudgment,
+  JudgmentConfidence,
+  JudgmentReason,
+  JudgmentReasonCode,
+} from './types/judgment';
 export { IMPLEMENTATION_STATUS_LABELS } from './types/status';
 export type { ImplementationStatus } from './types/status';

@@ -49,12 +49,11 @@ const getClassifiedEvidences = (evidences: Evidence[]): ClassifiedEvidences => {
   const codes = evidences.filter((evidence): evidence is CodeEvidence => evidence.kind === 'code');
   const pullRequests = evidences.filter((evidence): evidence is PullRequestEvidence => evidence.kind === 'pull_request');
   const issues = evidences.filter((evidence): evidence is IssueEvidence => evidence.kind === 'issue');
-  // 열린 PR에서만 변경 중인 코드는 아직 기본 브랜치에 반영된 구현으로 보지 않는다.
-  const defaultBranchCodes = codes.filter(({ isChangedInOpenPr }) => !isChangedInOpenPr);
-
+  // 코드 근거는 모두 기본 브랜치 체크아웃에서 읽은 것이다. 열린 PR이 같은 파일을 수정 중이어도(isChangedInOpenPr)
+  // 이미 기본 브랜치에 있는 구현이므로 반영 근거로 인정하고, PR 수정 여부는 진행 중 작업 알림에만 쓴다.
   return {
-    flowCodes: defaultBranchCodes.filter((code) => getCodeRole(code) === 'flow'),
-    supportingCodes: defaultBranchCodes.filter((code) => getCodeRole(code) === 'supporting'),
+    flowCodes: codes.filter((code) => getCodeRole(code) === 'flow'),
+    supportingCodes: codes.filter((code) => getCodeRole(code) === 'supporting'),
     openPullRequestCodes: codes.filter(({ isChangedInOpenPr }) => isChangedInOpenPr),
     mergedPullRequests: pullRequests.filter(({ state }) => state === 'merged'),
     openPullRequests: pullRequests.filter(({ state }) => state === 'open'),
@@ -69,18 +68,11 @@ const getClassifiedEvidences = (evidences: Evidence[]): ClassifiedEvidences => {
  * 규칙은 위에서부터 먼저 맞는 것을 적용한다.
  * "함수가 있다"만으로는 구현 완료가 아니므로, 호출 흐름이 연결된 코드가 있을 때만 확신을 높게 준다.
  * 배포 시스템 연동 전까지 'deployed'는 판정하지 않는다.
+ * 열린 PR이 수정 중인 코드는 판정을 바꾸지 않고 진행 중 작업(hasOpenWork)과 보조 근거로만 알린다.
  */
 const getDecision = (classified: ClassifiedEvidences): Decision => {
-  const {
-    flowCodes,
-    supportingCodes,
-    openPullRequestCodes,
-    mergedPullRequests,
-    openPullRequests,
-    closedPullRequests,
-    openIssues,
-    closedIssues,
-  } = classified;
+  const { flowCodes, supportingCodes, mergedPullRequests, openPullRequests, closedPullRequests, openIssues, closedIssues } =
+    classified;
 
   if (flowCodes.length > 0) {
     return { status: 'merged', confidence: 'high', decidingReason: 'connected_flow_on_default_branch' };
@@ -90,9 +82,6 @@ const getDecision = (classified: ClassifiedEvidences): Decision => {
   }
   if (mergedPullRequests.length > 0) {
     return { status: 'merged', confidence: 'low', decidingReason: 'merged_pull_request' };
-  }
-  if (openPullRequestCodes.length > 0) {
-    return { status: 'in_progress', confidence: 'high', decidingReason: 'open_pull_request_code_change' };
   }
   if (openPullRequests.length > 0) {
     return { status: 'in_progress', confidence: 'low', decidingReason: 'open_pull_request' };

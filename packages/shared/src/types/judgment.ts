@@ -9,7 +9,7 @@ export type JudgmentConfidence = 'high' | 'low';
  * - code_without_flow_on_default_branch: 기본 브랜치에 코드는 있으나 호출 흐름 연결은 확인하지 못함
  * - merged_pull_request: 병합된 PR을 확인
  * - open_pull_request: 열린 PR을 확인
- * - open_pull_request_code_change: 열린 PR에서 변경 중인 코드를 확인
+ * - open_pull_request_code_change: 기본 브랜치의 코드를 열린 PR도 수정 중 (판정을 바꾸지 않는 보조 근거)
  * - open_issue_only / closed_issue_only: 코드·PR 없이 이슈만 확인
  * - closed_pull_request_only: 코드·열린 PR·병합된 PR·열린 이슈 없이 병합 없이 닫힌 PR만 확인
  * - no_evidence: 탐색 범위에서 근거를 찾지 못함

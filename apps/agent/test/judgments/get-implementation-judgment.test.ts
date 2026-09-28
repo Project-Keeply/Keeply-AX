@@ -119,11 +119,11 @@ const RULE_CASES: RuleCase[] = [
     hasOpenWork: true,
   },
   {
-    name: '열린 PR에서 변경 중인 코드 → 작업 진행 중 / 확신 높음',
+    name: '기본 브랜치의 흐름 코드를 열린 PR이 수정 중 → 반영 / 확신 높음이면서 진행 중 작업 있음',
     evidences: [OPEN_PR_CODE, createPullRequest('open')],
-    status: 'in_progress',
+    status: 'merged',
     confidence: 'high',
-    decidingReason: 'open_pull_request_code_change',
+    decidingReason: 'connected_flow_on_default_branch',
     hasOpenWork: true,
   },
   {

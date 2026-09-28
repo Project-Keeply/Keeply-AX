@@ -38,7 +38,7 @@ export interface CodeEvidence extends BaseEvidence {
   snippet: string;
   /** 키워드 매칭 품질을 반영한 관련도 점수 */
   score: number;
-  /** 이 파일이 열린 PR에서 변경 중인지 여부 */
+  /** 기본 브랜치에 있는 이 파일을 열린 PR도 수정 중인지 여부 (코드 자체는 항상 기본 브랜치 체크아웃에서 읽는다) */
   isChangedInOpenPr: boolean;
   /** 첫 구간(startLine-endLine) 외에 스니펫에 추가로 포함된 떨어진 코드 구간 수 */
   extraSegmentCount: number;

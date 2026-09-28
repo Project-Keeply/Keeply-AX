@@ -104,7 +104,7 @@ describe('createEvidenceAnswer', () => {
     const answer = getAnswer(createBundle());
     expect(answer).toBe(
       `📊 판정: 기본 브랜치 반영 · 확신 높음
-• 근거: 연결된 호출 흐름 1건, 병합된 PR 1건, 작업 중 코드 변경 1건, 열린 PR 1건
+• 근거: 연결된 호출 흐름 1건, 흐름 미확인 코드 1건, 병합된 PR 1건, 열린 PR에서 수정 중인 코드 1건, 열린 PR 1건
 • 진행 중 작업: 열린 PR 1건
 • 확인하지 못한 범위: 실제 배포 여부, 실행 결과
 🔎 "공지사항" 관련 근거를 찾았어요

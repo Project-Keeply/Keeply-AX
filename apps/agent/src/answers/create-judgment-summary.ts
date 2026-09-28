@@ -11,7 +11,7 @@ const REASON_LABEL: Record<JudgmentReasonCode, string> = {
   code_without_flow_on_default_branch: '흐름 미확인 코드',
   merged_pull_request: '병합된 PR',
   open_pull_request: '열린 PR',
-  open_pull_request_code_change: '작업 중 코드 변경',
+  open_pull_request_code_change: '열린 PR에서 수정 중인 코드',
   open_issue_only: '열린 이슈',
   closed_pull_request_only: '병합되지 않고 닫힌 PR',
   closed_issue_only: '닫힌 이슈',

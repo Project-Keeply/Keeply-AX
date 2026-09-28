@@ -181,6 +181,12 @@ describe('getCodeRole', () => {
     expect(checkSupportingPath('src/main/resources/db/Schema.sql')).toBe(true);
     expect(checkSupportingPath('src/pages/home/home-page.tsx')).toBe(false);
   });
+
+  it('이름에 Schema가 들어간 구현 클래스는 보조 코드로 오인하지 않는다', () => {
+    expect(checkSupportingPath('src/main/java/com/keeply/order/service/OrderSchemaValidationService.java')).toBe(false);
+    expect(getCodeRole(createCode({ path: 'src/main/java/com/keeply/order/service/OrderSchemaValidationService.java' }))).toBe('flow');
+    expect(checkSupportingPath('src/shared/schemas/notice.ts')).toBe(true);
+  });
 });
 
 describe('getImplementationJudgment 규칙', () => {

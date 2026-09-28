@@ -8,7 +8,8 @@ import type { CodeEvidence } from '@keeply-ax/shared';
 export type CodeRole = 'flow' | 'supporting';
 
 // 흐름이 붙어 있어도 자동 생성 타입·DTO·스키마는 "요청이 실제로 처리된다"는 근거가 아니다.
-const SUPPORTING_PATH_PATTERNS = [/\.d\.ts$/, /\/dto\//, /\/types\//, /schema/i];
+// schema는 경로 세그먼트·파일명 단위로만 매칭한다 (OrderSchemaValidationService 같은 구현 클래스는 제외).
+const SUPPORTING_PATH_PATTERNS = [/\.d\.ts$/, /\/dto\//, /\/types\//, /(^|\/)schemas?(\/|\.)/i];
 
 export const checkSupportingPath = (filePath: string): boolean =>
   SUPPORTING_PATH_PATTERNS.some((pattern) => pattern.test(filePath));

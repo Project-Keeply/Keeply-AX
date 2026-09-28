@@ -1,5 +1,13 @@
-import type { CodeEvidence, EvidenceBundle, IssueEvidence, PullRequestEvidence, RepositoryRef } from '@keeply-ax/shared';
+import type {
+  CodeEvidence,
+  EvidenceBundle,
+  ImplementationJudgment,
+  IssueEvidence,
+  PullRequestEvidence,
+  RepositoryRef,
+} from '@keeply-ax/shared';
 import type { AskIntent } from '../intents/ask-intent-schema';
+import { createJudgmentSummary } from './create-judgment-summary';
 import { truncateAnswer } from './truncate-answer';
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -58,24 +66,31 @@ const createCheckedRefsLine = (bundle: EvidenceBundle): string => {
   return `🕐 조회: ${refsSummary} · ${formatCheckedAtKst(bundle.checkedAt)}`;
 };
 
-const NEXT_STEP_NOTE = '(다음 단계에서 구현 상태를 판정할 예정이에요.)';
+const NEXT_STEP_NOTE = '(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)';
 
 /**
- * 근거 수집 결과를 Discord 요약 메시지로 만든다 (플래너용 최종 답변은 다음 단계(#9)에서 처리).
+ * 구현 상태 판정과 근거 수집 결과를 Discord 요약 메시지로 만든다 (플래너용 최종 답변은 다음 단계(#9)에서 처리).
  * LLM 없이 규칙 기반으로 조립하며, 2000자 제한은 truncateAnswer로 방어한다.
  */
-export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle): string => {
+export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle, judgment: ImplementationJudgment): string => {
   const issues = bundle.evidences.filter((evidence): evidence is IssueEvidence => evidence.kind === 'issue');
   const pullRequests = bundle.evidences.filter((evidence): evidence is PullRequestEvidence => evidence.kind === 'pull_request');
   const codeEvidences = bundle.evidences.filter((evidence): evidence is CodeEvidence => evidence.kind === 'code');
+  const judgmentSummary = createJudgmentSummary(judgment);
 
   if (issues.length === 0 && pullRequests.length === 0 && codeEvidences.length === 0) {
     return truncateAnswer(
-      [`🔎 "${intent.feature_name}" 관련 근거를 탐색 범위에서 찾지 못했어요`, createCheckedRefsLine(bundle), NEXT_STEP_NOTE].join('\n'),
+      [
+        judgmentSummary,
+        `🔎 "${intent.feature_name}" 관련 근거를 탐색 범위에서 찾지 못했어요`,
+        createCheckedRefsLine(bundle),
+        NEXT_STEP_NOTE,
+      ].join('\n'),
     );
   }
 
-  const sections: string[] = [`🔎 "${intent.feature_name}" 관련 근거를 찾았어요`];
+  // 판정 요약은 답변의 핵심이라 본문 맨 앞에 둬서 근거 목록이 잘려도 남게 한다.
+  const sections: string[] = [judgmentSummary, `🔎 "${intent.feature_name}" 관련 근거를 찾았어요`];
 
   if (issues.length > 0) {
     sections.push(`📌 이슈 (${issues.length})`, ...issues.map(createIssueLine));

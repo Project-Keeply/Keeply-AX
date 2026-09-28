@@ -14,6 +14,7 @@ import { promisify } from 'node:util';
 import { createEvidenceAnswer } from '../src/answers/create-evidence-answer';
 import { getEvidenceBundle } from '../src/evidences/get-evidence-bundle';
 import { getAskIntent } from '../src/intents/get-ask-intent';
+import { getImplementationJudgment } from '../src/judgments/get-implementation-judgment';
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_INTENT_MODEL = 'claude-haiku-4-5';
@@ -85,8 +86,10 @@ const run = async (): Promise<void> => {
   console.log('\n근거 수집 중...');
   const bundle = await getEvidenceBundle(intent, githubToken);
 
+  const judgment = getImplementationJudgment(bundle);
+
   console.log('\n=== Discord 요약 ===');
-  console.log(createEvidenceAnswer(intent, bundle));
+  console.log(createEvidenceAnswer(intent, bundle, judgment));
 
   console.log('\n=== 이슈 ===');
   bundle.evidences

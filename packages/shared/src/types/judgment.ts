@@ -11,6 +11,7 @@ export type JudgmentConfidence = 'high' | 'low';
  * - open_pull_request: 열린 PR을 확인
  * - open_pull_request_code_change: 열린 PR에서 변경 중인 코드를 확인
  * - open_issue_only / closed_issue_only: 코드·PR 없이 이슈만 확인
+ * - closed_pull_request_only: 코드·열린 PR·병합된 PR·열린 이슈 없이 병합 없이 닫힌 PR만 확인
  * - no_evidence: 탐색 범위에서 근거를 찾지 못함
  */
 export type JudgmentReasonCode =
@@ -20,6 +21,7 @@ export type JudgmentReasonCode =
   | 'open_pull_request'
   | 'open_pull_request_code_change'
   | 'open_issue_only'
+  | 'closed_pull_request_only'
   | 'closed_issue_only'
   | 'no_evidence';
 

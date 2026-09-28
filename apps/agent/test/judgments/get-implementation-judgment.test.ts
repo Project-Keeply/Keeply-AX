@@ -143,6 +143,22 @@ const RULE_CASES: RuleCase[] = [
     hasOpenWork: false,
   },
   {
+    name: '병합 없이 닫힌 PR만 → 계획 또는 작업 대기 / 확신 낮음 (근거 없음으로 판정하지 않는다)',
+    evidences: [createPullRequest('closed')],
+    status: 'planned',
+    confidence: 'low',
+    decidingReason: 'closed_pull_request_only',
+    hasOpenWork: false,
+  },
+  {
+    name: '닫힌 PR과 닫힌 이슈만 → 닫힌 PR 근거로 판정하고 닫힌 이슈도 함께 보여준다',
+    evidences: [createPullRequest('closed'), createIssue('closed')],
+    status: 'planned',
+    confidence: 'low',
+    decidingReason: 'closed_pull_request_only',
+    hasOpenWork: false,
+  },
+  {
     name: '열린 이슈만 → 계획 또는 작업 대기 / 확신 높음',
     evidences: [createIssue('open')],
     status: 'planned',
@@ -214,6 +230,14 @@ describe('getImplementationJudgment 근거 목록', () => {
       ['code_without_flow_on_default_branch', 1],
       ['merged_pull_request', 2],
       ['open_pull_request', 1],
+    ]);
+  });
+
+  it('닫힌 PR·닫힌 이슈만 있으면 두 근거를 모두 건수와 함께 담는다', () => {
+    const judgment = getImplementationJudgment(createBundle([createPullRequest('closed'), createIssue('closed', 2)]));
+    expect(judgment.reasons.map(({ code, count }) => [code, count])).toEqual([
+      ['closed_pull_request_only', 1],
+      ['closed_issue_only', 1],
     ]);
   });
 

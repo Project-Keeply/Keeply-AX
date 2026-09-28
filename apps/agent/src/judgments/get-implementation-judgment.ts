@@ -23,6 +23,7 @@ const REASON_DISPLAY_ORDER: JudgmentReasonCode[] = [
   'open_pull_request_code_change',
   'open_pull_request',
   'open_issue_only',
+  'closed_pull_request_only',
   'closed_issue_only',
   'no_evidence',
 ];
@@ -33,6 +34,7 @@ interface ClassifiedEvidences {
   openPullRequestCodes: CodeEvidence[];
   mergedPullRequests: PullRequestEvidence[];
   openPullRequests: PullRequestEvidence[];
+  closedPullRequests: PullRequestEvidence[];
   openIssues: IssueEvidence[];
   closedIssues: IssueEvidence[];
 }
@@ -56,6 +58,8 @@ const getClassifiedEvidences = (evidences: Evidence[]): ClassifiedEvidences => {
     openPullRequestCodes: codes.filter(({ isChangedInOpenPr }) => isChangedInOpenPr),
     mergedPullRequests: pullRequests.filter(({ state }) => state === 'merged'),
     openPullRequests: pullRequests.filter(({ state }) => state === 'open'),
+    // 병합 없이 닫힌 PR: 코드가 반영되지 않았으므로 구현 근거는 아니지만, 작업을 시도했던 흔적이다.
+    closedPullRequests: pullRequests.filter(({ state }) => state === 'closed'),
     openIssues: issues.filter(({ state }) => state === 'open'),
     closedIssues: issues.filter(({ state }) => state === 'closed'),
   };
@@ -67,8 +71,16 @@ const getClassifiedEvidences = (evidences: Evidence[]): ClassifiedEvidences => {
  * 배포 시스템 연동 전까지 'deployed'는 판정하지 않는다.
  */
 const getDecision = (classified: ClassifiedEvidences): Decision => {
-  const { flowCodes, supportingCodes, openPullRequestCodes, mergedPullRequests, openPullRequests, openIssues, closedIssues } =
-    classified;
+  const {
+    flowCodes,
+    supportingCodes,
+    openPullRequestCodes,
+    mergedPullRequests,
+    openPullRequests,
+    closedPullRequests,
+    openIssues,
+    closedIssues,
+  } = classified;
 
   if (flowCodes.length > 0) {
     return { status: 'merged', confidence: 'high', decidingReason: 'connected_flow_on_default_branch' };
@@ -88,6 +100,10 @@ const getDecision = (classified: ClassifiedEvidences): Decision => {
   if (openIssues.length > 0) {
     return { status: 'planned', confidence: 'high', decidingReason: 'open_issue_only' };
   }
+  if (closedPullRequests.length > 0) {
+    // 병합 없이 닫힌 PR만 있으면 작업을 시도했지만 반영되지 않은 상태라, 계획 단계로 보되 확신은 낮다.
+    return { status: 'planned', confidence: 'low', decidingReason: 'closed_pull_request_only' };
+  }
   if (closedIssues.length > 0) {
     // 코드·PR 없이 닫힌 이슈만 있으면 계획이 취소됐거나 다른 이름으로 구현됐을 수 있어 확신이 낮다.
     return { status: 'planned', confidence: 'low', decidingReason: 'closed_issue_only' };
@@ -102,8 +118,16 @@ const createReason = (code: JudgmentReasonCode, evidences: Evidence[]): Judgment
 });
 
 const getReasons = (classified: ClassifiedEvidences, decidingReason: JudgmentReasonCode): JudgmentReason[] => {
-  const { flowCodes, supportingCodes, openPullRequestCodes, mergedPullRequests, openPullRequests, openIssues, closedIssues } =
-    classified;
+  const {
+    flowCodes,
+    supportingCodes,
+    openPullRequestCodes,
+    mergedPullRequests,
+    openPullRequests,
+    closedPullRequests,
+    openIssues,
+    closedIssues,
+  } = classified;
   const hasCodeOrPullRequest =
     flowCodes.length + supportingCodes.length + openPullRequestCodes.length + mergedPullRequests.length + openPullRequests.length > 0;
 
@@ -115,6 +139,8 @@ const getReasons = (classified: ClassifiedEvidences, decidingReason: JudgmentRea
     open_pull_request: openPullRequests,
     // 이슈는 코드·PR이 하나도 없을 때만 "이슈만 있음" 근거가 된다.
     open_issue_only: hasCodeOrPullRequest ? [] : openIssues,
+    // 닫힌 PR·닫힌 이슈는 판정에 더 강한 근거(코드·열린/병합된 PR·열린 이슈)가 없을 때만 근거로 보여준다.
+    closed_pull_request_only: hasCodeOrPullRequest || openIssues.length > 0 ? [] : closedPullRequests,
     closed_issue_only: hasCodeOrPullRequest || openIssues.length > 0 ? [] : closedIssues,
     no_evidence: [],
   };

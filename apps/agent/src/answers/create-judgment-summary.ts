@@ -13,6 +13,7 @@ const REASON_LABEL: Record<JudgmentReasonCode, string> = {
   open_pull_request: '열린 PR',
   open_pull_request_code_change: '작업 중 코드 변경',
   open_issue_only: '열린 이슈',
+  closed_pull_request_only: '병합되지 않고 닫힌 PR',
   closed_issue_only: '닫힌 이슈',
   no_evidence: '근거 없음',
 };

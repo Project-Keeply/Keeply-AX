@@ -7,6 +7,7 @@ import { getCodeMatches } from '../../src/evidences/get-code-matches';
 import { filterRelevantIssues, filterRelevantPullRequests } from '../../src/evidences/filter-relevant-items';
 import type { RawIssueItem, RawPullRequestItem } from '../../src/evidences/get-repository-items';
 import { createEvidenceAnswer } from '../../src/answers/create-evidence-answer';
+import { getImplementationJudgment } from '../../src/judgments/get-implementation-judgment';
 import type { AskIntent } from '../../src/intents/ask-intent-schema';
 import type { CodeEvidence, EvidenceBundle } from '@keeply-ax/shared';
 
@@ -176,15 +177,18 @@ describe('Fix 2 (답변 포맷): 추가 구간이 있으면 "외 N곳"을 표시
     searchedRepositories: [SERVER_REPO],
   });
 
+  const getAnswer = (bundle: EvidenceBundle): string =>
+    createEvidenceAnswer(createIntent(), bundle, getImplementationJudgment(bundle));
+
   it('extraSegmentCount가 0보다 크면 "L52-60 외 1곳"으로 표시한다', () => {
-    const answer = createEvidenceAnswer(createIntent(), createBundle([createCode({ extraSegmentCount: 1 })]));
+    const answer = getAnswer(createBundle([createCode({ extraSegmentCount: 1 })]));
     expect(answer).toContain('NoticeService.java L52-60 외 1곳');
   });
 
   it('extraSegmentCount가 0이면 범위만 표시한다', () => {
-    const answer = createEvidenceAnswer(createIntent(), createBundle([createCode({ extraSegmentCount: 0 })]));
+    const answer = getAnswer(createBundle([createCode({ extraSegmentCount: 0 })]));
     expect(answer).toContain('NoticeService.java L52-60');
-    expect(answer).not.toContain('외');
+    expect(answer).not.toContain('외 ');
   });
 });
 

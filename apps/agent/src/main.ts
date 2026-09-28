@@ -5,6 +5,7 @@ import { editOriginalMessage } from './discords/edit-original-message';
 import { getEvidenceBundle } from './evidences/get-evidence-bundle';
 import type { AskIntent } from './intents/ask-intent-schema';
 import { getAskIntent } from './intents/get-ask-intent';
+import { getImplementationJudgment } from './judgments/get-implementation-judgment';
 
 const DEFAULT_INTENT_MODEL = 'claude-haiku-4-5';
 
@@ -19,7 +20,10 @@ const getEvidenceAnswer = async (intent: AskIntent, githubToken: string): Promis
   // 질문·키워드·코드 스니펫은 로그에 남기지 않고 개수/소요시간만 남긴다.
   console.log(`근거 수집 완료 (issues ${issueCount} / prs ${pullRequestCount} / code ${codeCount}, ${elapsedMs}ms)`);
 
-  return createEvidenceAnswer(intent, bundle);
+  const judgment = getImplementationJudgment(bundle);
+  console.log(`상태 판정 완료 (status ${judgment.status} / confidence ${judgment.confidence})`);
+
+  return createEvidenceAnswer(intent, bundle, judgment);
 };
 
 const getRequiredEnv = (name: string): string => {

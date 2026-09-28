@@ -2,6 +2,7 @@ import type { CodeEvidence, EvidenceBundle, IssueEvidence, PullRequestEvidence }
 import { describe, expect, it } from 'vitest';
 import { createEvidenceAnswer } from '../src/answers/create-evidence-answer';
 import type { AskIntent } from '../src/intents/ask-intent-schema';
+import { getImplementationJudgment } from '../src/judgments/get-implementation-judgment';
 
 const SERVER_REPO = { owner: 'Project-Keeply', name: 'Keeply-Server' };
 const CLIENT_REPO = { owner: 'Project-Keeply', name: 'Keeply-client' };
@@ -95,11 +96,18 @@ const createBundle = (overrides: Partial<EvidenceBundle> = {}): EvidenceBundle =
   ...overrides,
 });
 
+const getAnswer = (bundle: EvidenceBundle): string =>
+  createEvidenceAnswer(createIntent(), bundle, getImplementationJudgment(bundle));
+
 describe('createEvidenceAnswer', () => {
-  it('전체 근거를 정해진 포맷으로 요약한다', () => {
-    const answer = createEvidenceAnswer(createIntent(), createBundle());
+  it('판정 요약과 전체 근거를 정해진 포맷으로 요약한다', () => {
+    const answer = getAnswer(createBundle());
     expect(answer).toBe(
-      `🔎 "공지사항" 관련 근거를 찾았어요
+      `📊 판정: 기본 브랜치 반영 · 확신 높음
+• 근거: 연결된 호출 흐름 1건, 흐름 미확인 코드 1건, 병합된 PR 1건, 열린 PR에서 수정 중인 코드 1건, 열린 PR 1건
+• 진행 중 작업: 열린 PR 1건
+• 확인하지 못한 범위: 실제 배포 여부, 실행 결과
+🔎 "공지사항" 관련 근거를 찾았어요
 📌 이슈 (1)
 • [Server] #12 공지사항 CRUD 구현 · 닫힘
 🔀 PR (2)
@@ -109,35 +117,40 @@ describe('createEvidenceAnswer', () => {
 • [Server] NoticeController.java L20-45 · 흐름: NoticeController → NoticeService → NoticeRepository
 • [Client] api.ts L5-30 · 작업 중 PR에서 변경
 🕐 조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
-(다음 단계에서 구현 상태를 판정할 예정이에요.)`,
+(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)`,
     );
   });
 
   it('비어있는 섹션은 생략한다', () => {
-    const answer = createEvidenceAnswer(createIntent(), createBundle({ evidences: [ISSUE] }));
+    const answer = getAnswer(createBundle({ evidences: [ISSUE] }));
     expect(answer).not.toContain('🔀 PR');
     expect(answer).not.toContain('💻 코드');
     expect(answer).toContain('📌 이슈 (1)');
   });
 
   it('아무 근거도 못 찾으면 전용 메시지를 반환한다', () => {
-    const answer = createEvidenceAnswer(createIntent(), createBundle({ evidences: [] }));
+    const answer = getAnswer(createBundle({ evidences: [] }));
     expect(answer).toBe(
-      `🔎 "공지사항" 관련 근거를 탐색 범위에서 찾지 못했어요
+      `📊 판정: 구현 여부 확인 불가 · 확신 높음
+• 근거: 근거 없음
+• 진행 중 작업: 없음
+• 확인하지 못한 범위: 실제 배포 여부, 실행 결과
+🔎 "공지사항" 관련 근거를 탐색 범위에서 찾지 못했어요
 🕐 조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
-(다음 단계에서 구현 상태를 판정할 예정이에요.)`,
+(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)`,
     );
   });
 
-  it('2000자를 넘으면 근거 목록만 잘라내고 조회 기준·안내 문구는 유지한다', () => {
+  it('2000자를 넘으면 근거 목록만 잘라내고 판정 요약·조회 기준·안내 문구는 유지한다', () => {
     const manyIssues: IssueEvidence[] = Array.from({ length: 200 }, (_, index) => ({
       ...ISSUE,
       number: index,
       title: `아주 긴 제목입니다 ${'가'.repeat(20)}`,
     }));
-    const answer = createEvidenceAnswer(createIntent(), createBundle({ evidences: manyIssues }));
+    const answer = getAnswer(createBundle({ evidences: manyIssues }));
     expect(answer.length).toBeLessThanOrEqual(2000);
+    expect(answer.startsWith('📊 판정: 계획 또는 작업 대기 · 확신 낮음')).toBe(true);
     expect(answer).toContain('…\n🕐 조회: ');
-    expect(answer.endsWith('(다음 단계에서 구현 상태를 판정할 예정이에요.)')).toBe(true);
+    expect(answer.endsWith('(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)')).toBe(true);
   });
 });

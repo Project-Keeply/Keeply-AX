@@ -141,15 +141,23 @@ export const createPlannerAnswerEmbed = ({ intent, bundle, judgment, answer, cat
 
   // 규칙 판정 기반의 확신·진행 중 작업 줄은 항상 남기고, 요약만 남는 길이에 맞춰 줄인다.
   const judgmentLine = `\n\n확신 ${CONFIDENCE_LABEL[judgment.confidence]} · 진행 중 작업: ${createOpenWorkText(judgment)}`;
-  const description = `${truncateText(answer.summary, EMBED_DESCRIPTION_MAX_LENGTH - judgmentLine.length)}${judgmentLine}`;
+  const summaryMaxLength = EMBED_DESCRIPTION_MAX_LENGTH - judgmentLine.length;
+  const createDescription = (maxSummaryLength: number): string => `${truncateText(answer.summary, maxSummaryLength)}${judgmentLine}`;
 
   const embed: APIEmbed = {
     title: truncateText(`${intent.feature_name} — ${IMPLEMENTATION_STATUS_LABELS[judgment.status]}`, EMBED_TITLE_MAX_LENGTH),
-    description,
+    description: createDescription(summaryMaxLength),
     color: STATUS_COLOR[judgment.status],
     fields: [...subFeatureFields, ...fallbackEvidenceField, ...noteField, unverifiedField],
     footer: { text: truncateText(`조회: ${createCheckedRefsText(bundle)} (KST)`, EMBED_FOOTER_MAX_LENGTH) },
   };
 
-  return convertToEmbedWithinLimit(embed, subFeatureFields.length);
+  const trimmedEmbed = convertToEmbedWithinLimit(embed, subFeatureFields.length);
+  const overflowLength = getEmbedLength(trimmedEmbed) - EMBED_TOTAL_MAX_LENGTH;
+  if (overflowLength <= 0) {
+    return trimmedEmbed;
+  }
+  // 세부 기능 필드를 모두 빼도 넘치면(세부 기능 없이 요약·참고가 긴 경우) 남은 예산만큼 요약을 줄인다.
+  const visibleSummaryLength = Math.min(answer.summary.length, summaryMaxLength);
+  return { ...trimmedEmbed, description: createDescription(Math.max(visibleSummaryLength - overflowLength, 0)) };
 };

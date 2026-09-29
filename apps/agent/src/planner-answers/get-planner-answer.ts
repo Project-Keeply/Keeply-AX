@@ -8,6 +8,9 @@ import { plannerAnswerSchema, type PlannerAnswer } from './planner-answer-schema
 
 // 세부 기능 6개 + 요약·보충 설명의 JSON이면 충분하지만, 한국어 설명이 길어질 여유를 둔다.
 const MAX_TOKENS = 4096;
+// LLM이 멈춰도 워크플로 제한(12분) 안에 규칙 기반 대체 답변까지 보낼 수 있도록 짧게 제한한다.
+const REQUEST_TIMEOUT_MS = 60_000;
+const MAX_RETRIES = 1;
 
 interface GetPlannerAnswerParams {
   question: string;
@@ -47,7 +50,7 @@ const callPlannerAnswerApi = async (client: Anthropic, params: GetPlannerAnswerP
 
 /** 근거·판정을 기획자용 업무 언어 답변으로 정리한다 (LLM #2). */
 export const getPlannerAnswer = async (params: GetPlannerAnswerParams): Promise<GetPlannerAnswerResult> => {
-  const client = new Anthropic({ apiKey: params.apiKey });
+  const client = new Anthropic({ apiKey: params.apiKey, timeout: REQUEST_TIMEOUT_MS, maxRetries: MAX_RETRIES });
   const response = await callPlannerAnswerApi(client, params);
 
   if (response.stop_reason === 'refusal') {

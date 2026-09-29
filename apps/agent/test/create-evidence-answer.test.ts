@@ -117,7 +117,7 @@ PR (2)
 • [Server] NoticeController.java L20-45 · 흐름: NoticeController → NoticeService → NoticeRepository
 • [Client] api.ts L5-30 · 작업 중 PR에서 변경
 조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
-(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)`,
+(기획자용 답변을 만들지 못해 수집한 근거를 그대로 보여드려요.)`,
     );
   });
 
@@ -137,7 +137,7 @@ PR (2)
 • 확인하지 못한 범위: 실제 배포 여부, 실행 결과
 "공지사항" 관련 근거를 탐색 범위에서 찾지 못했어요
 조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
-(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)`,
+(기획자용 답변을 만들지 못해 수집한 근거를 그대로 보여드려요.)`,
     );
   });
 
@@ -151,6 +151,6 @@ PR (2)
     expect(answer.length).toBeLessThanOrEqual(2000);
     expect(answer.startsWith('판정: 계획 또는 작업 대기 · 확신 낮음')).toBe(true);
     expect(answer).toContain('…\n조회: ');
-    expect(answer.endsWith('(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)')).toBe(true);
+    expect(answer.endsWith('(기획자용 답변을 만들지 못해 수집한 근거를 그대로 보여드려요.)')).toBe(true);
   });
 });

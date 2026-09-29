@@ -1,17 +1,8 @@
-import type {
-  CodeEvidence,
-  EvidenceBundle,
-  ImplementationJudgment,
-  IssueEvidence,
-  PullRequestEvidence,
-  RepositoryRef,
-} from '@keeply-ax/shared';
+import type { CodeEvidence, EvidenceBundle, ImplementationJudgment, IssueEvidence, PullRequestEvidence } from '@keeply-ax/shared';
 import type { AskIntent } from '../intents/ask-intent-schema';
+import { createCheckedRefsText, getRepositoryLabel } from './create-checked-refs-text';
 import { createJudgmentSummary } from './create-judgment-summary';
 import { truncateAnswer } from './truncate-answer';
-
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-const SHORT_SHA_LENGTH = 7;
 
 const ISSUE_STATE_LABEL: Record<IssueEvidence['state'], string> = {
   open: '열림',
@@ -24,17 +15,7 @@ const PULL_REQUEST_STATE_LABEL: Record<PullRequestEvidence['state'], string> = {
   merged: '병합됨',
 };
 
-// 저장소 이름에 "server"가 포함되면 Server, 그 외에는 Client로 간주한다 (target-repositories.ts의 두 저장소 기준).
-const getRepositoryLabel = (repository: RepositoryRef): string =>
-  repository.name.toLowerCase().includes('server') ? 'Server' : 'Client';
-
 const getFileName = (filePath: string): string => filePath.split('/').at(-1) ?? filePath;
-
-const formatCheckedAtKst = (checkedAtIso: string): string => {
-  const kstDate = new Date(new Date(checkedAtIso).getTime() + KST_OFFSET_MS);
-  const pad = (value: number): string => String(value).padStart(2, '0');
-  return `${kstDate.getUTCFullYear()}-${pad(kstDate.getUTCMonth() + 1)}-${pad(kstDate.getUTCDate())} ${pad(kstDate.getUTCHours())}:${pad(kstDate.getUTCMinutes())}`;
-};
 
 const createIssueLine = (issue: IssueEvidence): string =>
   `• [${getRepositoryLabel(issue.repository)}] #${issue.number} ${issue.title} · ${ISSUE_STATE_LABEL[issue.state]}`;
@@ -59,17 +40,13 @@ const createCodeLine = (code: CodeEvidence): string => {
   return `• [${getRepositoryLabel(code.repository)}] ${location}${suffix ? ` · ${suffix}` : ''}`;
 };
 
-const createCheckedRefsLine = (bundle: EvidenceBundle): string => {
-  const refsSummary = bundle.checkedRefs
-    .map((ref) => `${getRepositoryLabel(ref.repository)} ${ref.branch}@${ref.commitSha.slice(0, SHORT_SHA_LENGTH)}`)
-    .join(', ');
-  return `조회: ${refsSummary} · ${formatCheckedAtKst(bundle.checkedAt)}`;
-};
+const createCheckedRefsLine = (bundle: EvidenceBundle): string => `조회: ${createCheckedRefsText(bundle)}`;
 
-const NEXT_STEP_NOTE = '(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)';
+// 이 텍스트 답변은 기획자용 답변(embed)을 만들지 못했을 때의 대체 답변으로 쓴다.
+const FALLBACK_NOTE = '(기획자용 답변을 만들지 못해 수집한 근거를 그대로 보여드려요.)';
 
 /**
- * 구현 상태 판정과 근거 수집 결과를 Discord 요약 메시지로 만든다 (플래너용 최종 답변은 다음 단계(#9)에서 처리).
+ * 구현 상태 판정과 근거 수집 결과를 Discord 텍스트 메시지로 만든다. 기획자용 답변(LLM #2)이 실패했을 때 대체 답변으로 쓴다.
  * LLM 없이 규칙 기반으로 조립하며, 2000자 제한은 truncateAnswer로 방어한다.
  */
 export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle, judgment: ImplementationJudgment): string => {
@@ -84,7 +61,7 @@ export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle, 
         judgmentSummary,
         `"${intent.feature_name}" 관련 근거를 탐색 범위에서 찾지 못했어요`,
         createCheckedRefsLine(bundle),
-        NEXT_STEP_NOTE,
+        FALLBACK_NOTE,
       ].join('\n'),
     );
   }
@@ -103,5 +80,5 @@ export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle, 
   }
 
   // 조회 기준(브랜치·커밋·시각)은 답변 신뢰성의 필수 정보라, 근거 목록이 길어도 잘리지 않게 보존한다.
-  return truncateAnswer(sections.join('\n'), `\n${createCheckedRefsLine(bundle)}\n${NEXT_STEP_NOTE}`);
+  return truncateAnswer(sections.join('\n'), `\n${createCheckedRefsLine(bundle)}\n${FALLBACK_NOTE}`);
 };

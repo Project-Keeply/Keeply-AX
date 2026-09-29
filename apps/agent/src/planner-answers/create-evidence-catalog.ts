@@ -61,7 +61,7 @@ const createCatalogEntryText = ({ id, evidence }: EvidenceCatalogEntry): string 
     return `${id} [이슈] ${repositoryLabel} #${evidence.number} "${convertToSafePromptText(evidence.title)}" (${ISSUE_STATE_LABEL[evidence.state]})`;
   }
   if (evidence.kind === 'pull_request') {
-    return `${id} [PR] ${repositoryLabel} #${evidence.number} "${convertToSafePromptText(evidence.title)}" (${PULL_REQUEST_STATE_LABEL[evidence.state]}, ${convertToSafePromptText(evidence.headBranch)} → ${evidence.baseBranch})`;
+    return `${id} [PR] ${repositoryLabel} #${evidence.number} "${convertToSafePromptText(evidence.title)}" (${PULL_REQUEST_STATE_LABEL[evidence.state]}, ${convertToSafePromptText(evidence.headBranch)} → ${convertToSafePromptText(evidence.baseBranch)})`;
   }
   if (evidence.kind === 'code') {
     return createCodeCatalogText(id, evidence);

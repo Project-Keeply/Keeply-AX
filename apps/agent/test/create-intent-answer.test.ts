@@ -20,7 +20,7 @@ describe('createIntentAnswer', () => {
   it('명확한 경우 고정 포맷으로 답한다', () => {
     const answer = createIntentAnswer(createBaseIntent());
     expect(answer).toBe(
-      `🔎 질문을 이렇게 이해했어요
+      `질문을 이렇게 이해했어요
 • 기능: 유통기한 물품 관리
 • 궁금한 점: 구현 현황
 • 확인할 저장소: Server, Client
@@ -58,7 +58,7 @@ describe('createIntentAnswer', () => {
       }),
     );
     expect(answer).toBe(
-      `🤔 어떤 기능을 말씀하시는 건가요?
+      `어떤 기능을 말씀하시는 건가요?
 • 유통기한 물품 관리
 • 공지사항
 구체적인 기능 이름으로 다시 /ask 해주세요.`,
@@ -68,7 +68,7 @@ describe('createIntentAnswer', () => {
   it('범위 밖 질문은 고정 안내 문구를 반환한다', () => {
     const answer = createIntentAnswer(createBaseIntent({ question_type: 'out_of_scope' }));
     expect(answer).toBe(
-      `🙏 기능 구현 현황에 대한 질문만 답할 수 있어요.
+      `기능 구현 현황에 대한 질문만 답할 수 있어요.
 예: "회원가입 어디까지 구현됐어?"`,
     );
   });
@@ -82,7 +82,7 @@ describe('createIntentAnswer', () => {
         clarification_options: ['A'],
       }),
     );
-    expect(answer).toContain('🙏 기능 구현 현황에 대한 질문만 답할 수 있어요.');
+    expect(answer).toContain('기능 구현 현황에 대한 질문만 답할 수 있어요.');
   });
 
   it('2000자를 넘으면 말줄임표로 잘라낸다', () => {
@@ -97,7 +97,7 @@ describe('createIntentAnswer', () => {
       const answer = createIntentAnswer(
         createBaseIntent({ is_ambiguous: true, clarification_question: null, clarification_options: [] }),
       );
-      expect(answer).toBe(`🤔 어떤 기능을 확인할까요?
+      expect(answer).toBe(`어떤 기능을 확인할까요?
 구체적인 기능 이름으로 다시 /ask 해주세요.`);
     });
 
@@ -105,14 +105,14 @@ describe('createIntentAnswer', () => {
       const answer = createIntentAnswer(
         createBaseIntent({ is_ambiguous: true, clarification_question: '  ', clarification_options: [' ', '회원 가입'] }),
       );
-      expect(answer).toBe(`🤔 어떤 기능을 확인할까요?
+      expect(answer).toBe(`어떤 기능을 확인할까요?
 • 회원 가입
 구체적인 기능 이름으로 다시 /ask 해주세요.`);
     });
 
     it('명확한 질문에서 저장소·키워드가 비면 해당 줄을 생략한다', () => {
       const answer = createIntentAnswer(createBaseIntent({ target_repositories: [], search_keywords: [] }));
-      expect(answer).toBe(`🔎 질문을 이렇게 이해했어요
+      expect(answer).toBe(`질문을 이렇게 이해했어요
 • 기능: 유통기한 물품 관리
 • 궁금한 점: 구현 현황
 (다음 단계에서 GitHub 근거를 확인할 예정이에요.)`);

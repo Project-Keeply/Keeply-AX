@@ -103,40 +103,40 @@ describe('createEvidenceAnswer', () => {
   it('판정 요약과 전체 근거를 정해진 포맷으로 요약한다', () => {
     const answer = getAnswer(createBundle());
     expect(answer).toBe(
-      `📊 판정: 기본 브랜치 반영 · 확신 높음
+      `판정: 기본 브랜치 반영 · 확신 높음
 • 근거: 연결된 호출 흐름 1건, 흐름 미확인 코드 1건, 병합된 PR 1건, 열린 PR에서 수정 중인 코드 1건, 열린 PR 1건
 • 진행 중 작업: 열린 PR 1건
 • 확인하지 못한 범위: 실제 배포 여부, 실행 결과
-🔎 "공지사항" 관련 근거를 찾았어요
-📌 이슈 (1)
+"공지사항" 관련 근거를 찾았어요
+이슈 (1)
 • [Server] #12 공지사항 CRUD 구현 · 닫힘
-🔀 PR (2)
+PR (2)
 • [Server] #15 feat: 공지사항 API · 병합됨
 • [Client] #40 fix: 공지 수정 · 열림
-💻 코드 (2)
+코드 (2)
 • [Server] NoticeController.java L20-45 · 흐름: NoticeController → NoticeService → NoticeRepository
 • [Client] api.ts L5-30 · 작업 중 PR에서 변경
-🕐 조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
+조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
 (다음 단계에서 기획자용 답변으로 정리할 예정이에요.)`,
     );
   });
 
   it('비어있는 섹션은 생략한다', () => {
     const answer = getAnswer(createBundle({ evidences: [ISSUE] }));
-    expect(answer).not.toContain('🔀 PR');
-    expect(answer).not.toContain('💻 코드');
-    expect(answer).toContain('📌 이슈 (1)');
+    expect(answer).not.toContain('PR');
+    expect(answer).not.toContain('코드');
+    expect(answer).toContain('이슈 (1)');
   });
 
   it('아무 근거도 못 찾으면 전용 메시지를 반환한다', () => {
     const answer = getAnswer(createBundle({ evidences: [] }));
     expect(answer).toBe(
-      `📊 판정: 구현 여부 확인 불가 · 확신 높음
+      `판정: 구현 여부 확인 불가 · 확신 높음
 • 근거: 근거 없음
 • 진행 중 작업: 없음
 • 확인하지 못한 범위: 실제 배포 여부, 실행 결과
-🔎 "공지사항" 관련 근거를 탐색 범위에서 찾지 못했어요
-🕐 조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
+"공지사항" 관련 근거를 탐색 범위에서 찾지 못했어요
+조회: Server develop@a1b2c3d, Client develop@e4f5g6h · 2026-09-27 15:20
 (다음 단계에서 기획자용 답변으로 정리할 예정이에요.)`,
     );
   });
@@ -149,8 +149,8 @@ describe('createEvidenceAnswer', () => {
     }));
     const answer = getAnswer(createBundle({ evidences: manyIssues }));
     expect(answer.length).toBeLessThanOrEqual(2000);
-    expect(answer.startsWith('📊 판정: 계획 또는 작업 대기 · 확신 낮음')).toBe(true);
-    expect(answer).toContain('…\n🕐 조회: ');
+    expect(answer.startsWith('판정: 계획 또는 작업 대기 · 확신 낮음')).toBe(true);
+    expect(answer).toContain('…\n조회: ');
     expect(answer.endsWith('(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)')).toBe(true);
   });
 });

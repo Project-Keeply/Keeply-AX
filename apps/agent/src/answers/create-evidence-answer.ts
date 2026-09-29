@@ -63,7 +63,7 @@ const createCheckedRefsLine = (bundle: EvidenceBundle): string => {
   const refsSummary = bundle.checkedRefs
     .map((ref) => `${getRepositoryLabel(ref.repository)} ${ref.branch}@${ref.commitSha.slice(0, SHORT_SHA_LENGTH)}`)
     .join(', ');
-  return `🕐 조회: ${refsSummary} · ${formatCheckedAtKst(bundle.checkedAt)}`;
+  return `조회: ${refsSummary} · ${formatCheckedAtKst(bundle.checkedAt)}`;
 };
 
 const NEXT_STEP_NOTE = '(다음 단계에서 기획자용 답변으로 정리할 예정이에요.)';
@@ -82,7 +82,7 @@ export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle, 
     return truncateAnswer(
       [
         judgmentSummary,
-        `🔎 "${intent.feature_name}" 관련 근거를 탐색 범위에서 찾지 못했어요`,
+        `"${intent.feature_name}" 관련 근거를 탐색 범위에서 찾지 못했어요`,
         createCheckedRefsLine(bundle),
         NEXT_STEP_NOTE,
       ].join('\n'),
@@ -90,16 +90,16 @@ export const createEvidenceAnswer = (intent: AskIntent, bundle: EvidenceBundle, 
   }
 
   // 판정 요약은 답변의 핵심이라 본문 맨 앞에 둬서 근거 목록이 잘려도 남게 한다.
-  const sections: string[] = [judgmentSummary, `🔎 "${intent.feature_name}" 관련 근거를 찾았어요`];
+  const sections: string[] = [judgmentSummary, `"${intent.feature_name}" 관련 근거를 찾았어요`];
 
   if (issues.length > 0) {
-    sections.push(`📌 이슈 (${issues.length})`, ...issues.map(createIssueLine));
+    sections.push(`이슈 (${issues.length})`, ...issues.map(createIssueLine));
   }
   if (pullRequests.length > 0) {
-    sections.push(`🔀 PR (${pullRequests.length})`, ...pullRequests.map(createPullRequestLine));
+    sections.push(`PR (${pullRequests.length})`, ...pullRequests.map(createPullRequestLine));
   }
   if (codeEvidences.length > 0) {
-    sections.push(`💻 코드 (${codeEvidences.length})`, ...codeEvidences.map(createCodeLine));
+    sections.push(`코드 (${codeEvidences.length})`, ...codeEvidences.map(createCodeLine));
   }
 
   // 조회 기준(브랜치·커밋·시각)은 답변 신뢰성의 필수 정보라, 근거 목록이 길어도 잘리지 않게 보존한다.

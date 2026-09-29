@@ -32,7 +32,7 @@ const createOpenWorkText = ({ hasOpenWork, reasons }: ImplementationJudgment): s
 /** 구현 상태 판정 결과를 Discord 메시지 상단 요약으로 만든다. */
 export const createJudgmentSummary = (judgment: ImplementationJudgment): string =>
   [
-    `📊 판정: ${IMPLEMENTATION_STATUS_LABELS[judgment.status]} · 확신 ${CONFIDENCE_LABEL[judgment.confidence]}`,
+    `판정: ${IMPLEMENTATION_STATUS_LABELS[judgment.status]} · 확신 ${CONFIDENCE_LABEL[judgment.confidence]}`,
     `• 근거: ${createReasonText(judgment)}`,
     `• 진행 중 작업: ${createOpenWorkText(judgment)}`,
     `• 확인하지 못한 범위: ${judgment.unverifiedScopes.join(', ')}`,

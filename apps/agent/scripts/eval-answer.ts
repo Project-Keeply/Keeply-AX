@@ -45,7 +45,7 @@ interface EvalResult {
   invalidIdCount: number;
   downgradedCount: number;
   isWithinLimit: boolean;
-  hasEmoji: boolean;
+  isEmojiIncluded: boolean;
   inputTokens: number;
   outputTokens: number;
 }
@@ -92,7 +92,7 @@ const evaluateQuestion = async (question: string, apiKey: string, githubToken: s
       ({ status }, index) => status === 'unverified' && answer.sub_features[index]?.status !== 'unverified',
     ).length,
     isWithinLimit: getEmbedLength(embed) <= EMBED_TOTAL_MAX_LENGTH,
-    hasEmoji: PICTOGRAPHIC_PATTERN.test(embedText),
+    isEmojiIncluded: PICTOGRAPHIC_PATTERN.test(embedText),
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
   };
@@ -117,9 +117,9 @@ const run = async (): Promise<void> => {
   ).filter((result): result is EvalResult => result !== null);
 
   console.log('\n=== 자동 확인 결과');
-  results.forEach(({ question, invalidIdCount, downgradedCount, isWithinLimit, hasEmoji, inputTokens, outputTokens }) => {
+  results.forEach(({ question, invalidIdCount, downgradedCount, isWithinLimit, isEmojiIncluded, inputTokens, outputTokens }) => {
     console.log(
-      `- ${question} | 없는 근거 ID ${invalidIdCount} | 강등 ${downgradedCount} | 길이 제한 ${isWithinLimit ? '통과' : '초과'} | 이모지 ${hasEmoji ? '있음' : '없음'} | 답변 토큰 input ${inputTokens} / output ${outputTokens}`,
+      `- ${question} | 없는 근거 ID ${invalidIdCount} | 강등 ${downgradedCount} | 길이 제한 ${isWithinLimit ? '통과' : '초과'} | 이모지 ${isEmojiIncluded ? '있음' : '없음'} | 답변 토큰 input ${inputTokens} / output ${outputTokens}`,
     );
   });
 };

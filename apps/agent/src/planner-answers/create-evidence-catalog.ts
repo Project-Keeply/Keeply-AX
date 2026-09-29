@@ -1,6 +1,7 @@
 import type { CodeEvidence, Evidence, EvidenceBundle, IssueEvidence, PullRequestEvidence } from '@keeply-ax/shared';
 import { getRepositoryLabel } from '../answers/create-checked-refs-text';
 import { getCodeRole } from '../judgments/check-code-role';
+import { convertToSafePromptText } from './convert-to-safe-prompt-text';
 
 export interface EvidenceCatalogEntry {
   id: string;
@@ -47,9 +48,9 @@ const createCodeCatalogText = (id: string, code: CodeEvidence): string => {
   ].filter((attribute): attribute is string => attribute !== null);
 
   return [
-    `${id} [코드] ${getRepositoryLabel(code.repository)} ${code.path} L${code.startLine}-${code.endLine} (${code.branch} 브랜치) · ${attributes.join(' · ')}`,
+    `${id} [코드] ${getRepositoryLabel(code.repository)} ${convertToSafePromptText(code.path)} L${code.startLine}-${code.endLine} (${code.branch} 브랜치) · ${attributes.join(' · ')}`,
     '<snippet>',
-    code.snippet,
+    convertToSafePromptText(code.snippet),
     '</snippet>',
   ].join('\n');
 };
@@ -57,15 +58,15 @@ const createCodeCatalogText = (id: string, code: CodeEvidence): string => {
 const createCatalogEntryText = ({ id, evidence }: EvidenceCatalogEntry): string => {
   const repositoryLabel = getRepositoryLabel(evidence.repository);
   if (evidence.kind === 'issue') {
-    return `${id} [이슈] ${repositoryLabel} #${evidence.number} "${evidence.title}" (${ISSUE_STATE_LABEL[evidence.state]})`;
+    return `${id} [이슈] ${repositoryLabel} #${evidence.number} "${convertToSafePromptText(evidence.title)}" (${ISSUE_STATE_LABEL[evidence.state]})`;
   }
   if (evidence.kind === 'pull_request') {
-    return `${id} [PR] ${repositoryLabel} #${evidence.number} "${evidence.title}" (${PULL_REQUEST_STATE_LABEL[evidence.state]}, ${evidence.headBranch} → ${evidence.baseBranch})`;
+    return `${id} [PR] ${repositoryLabel} #${evidence.number} "${convertToSafePromptText(evidence.title)}" (${PULL_REQUEST_STATE_LABEL[evidence.state]}, ${convertToSafePromptText(evidence.headBranch)} → ${evidence.baseBranch})`;
   }
   if (evidence.kind === 'code') {
     return createCodeCatalogText(id, evidence);
   }
-  return `${id} [커밋] ${repositoryLabel} ${evidence.sha.slice(0, 7)} "${evidence.message}"`;
+  return `${id} [커밋] ${repositoryLabel} ${evidence.sha.slice(0, 7)} "${convertToSafePromptText(evidence.message)}"`;
 };
 
 /** LLM 입력에 넣을 근거 목록 텍스트 */

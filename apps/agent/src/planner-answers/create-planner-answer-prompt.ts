@@ -1,6 +1,7 @@
 import { IMPLEMENTATION_STATUS_LABELS } from '@keeply-ax/shared';
 import type { ImplementationJudgment } from '@keeply-ax/shared';
 import type { AskIntent } from '../intents/ask-intent-schema';
+import { convertToSafePromptText } from './convert-to-safe-prompt-text';
 import { createCatalogText, type EvidenceCatalogEntry } from './create-evidence-catalog';
 
 const QUESTION_TYPE_LABEL: Record<AskIntent['question_type'], string> = {
@@ -65,15 +66,15 @@ interface CreatePlannerAnswerUserMessageParams {
 /** 질문·판정·근거 목록을 태그로 구분해 전달한다. */
 export const createPlannerAnswerUserMessage = ({ question, intent, judgment, catalog }: CreatePlannerAnswerUserMessageParams): string =>
   [
-    `<question>${question}</question>`,
+    `<question>${convertToSafePromptText(question)}</question>`,
     '',
-    `<analysis>`,
-    `기능: ${intent.feature_name}`,
+    '<analysis>',
+    `기능: ${convertToSafePromptText(intent.feature_name)}`,
     `질문 유형: ${QUESTION_TYPE_LABEL[intent.question_type]}`,
     `전체 판정: ${IMPLEMENTATION_STATUS_LABELS[judgment.status]} (확신 ${CONFIDENCE_LABEL[judgment.confidence]})`,
     `진행 중 작업: ${judgment.hasOpenWork ? '있음' : '없음'}`,
     `확인하지 못한 범위: ${judgment.unverifiedScopes.join(', ')}`,
-    `</analysis>`,
+    '</analysis>',
     '',
     '<evidences>',
     catalog.length > 0 ? createCatalogText(catalog) : '(탐색 범위에서 찾은 근거 없음)',

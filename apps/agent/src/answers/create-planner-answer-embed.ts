@@ -17,6 +17,10 @@ const TRUNCATION_MARK = '…';
 
 const MAX_LINKS_PER_SUB_FEATURE = 4;
 const MAX_SUMMARY_LINKS = 6;
+// 세부 기능 필드에서 설명이 최소한 차지할 길이. 나머지를 근거 링크 줄에 쓴다.
+const MIN_SUB_FEATURE_DESCRIPTION_LENGTH = 300;
+const EVIDENCE_LINE_PREFIX = '\n근거: ';
+const NO_EVIDENCE_LINE = '\n근거: 확인한 근거 없음';
 
 // 상태별 embed 색상 (반영: 초록, 진행 중: 주황, 계획: 파랑, 확인 불가: 회색)
 const STATUS_COLOR: Record<ImplementationStatus, number> = {
@@ -24,6 +28,7 @@ const STATUS_COLOR: Record<ImplementationStatus, number> = {
   in_progress: 0xd29922,
   planned: 0x388bfd,
   unverified: 0x6e7681,
+  // 배포 시스템 연동 전까지 판정에서 나오지 않는 상태 (Record 완전성을 위해 반영과 같은 색으로 둔다)
   deployed: 0x2ea043,
 };
 
@@ -32,29 +37,49 @@ const CONFIDENCE_LABEL: Record<ImplementationJudgment['confidence'], string> = {
   low: '낮음',
 };
 
-const truncateText = (text: string, maxLength: number): string =>
-  text.length <= maxLength ? text : `${text.slice(0, maxLength - TRUNCATION_MARK.length)}${TRUNCATION_MARK}`;
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  if (maxLength <= TRUNCATION_MARK.length) {
+    return text.slice(0, Math.max(maxLength, 0));
+  }
+  return `${text.slice(0, maxLength - TRUNCATION_MARK.length)}${TRUNCATION_MARK}`;
+};
 
-// 링크 이름에 대괄호가 들어가면 마크다운 링크가 깨지므로 제거한다.
-const convertToLinkLabel = (label: string): string => label.replace(/[[\]]/g, '');
+// 링크 이름: 대괄호는 링크 문법을 깨므로 지우고, 파일명의 _ * 등은 서식으로 해석되지 않게 이스케이프한다.
+const convertToLinkLabel = (label: string): string => label.replace(/[[\]]/g, '').replace(/([\\*_`~|])/g, '\\$1');
 
-const createEvidenceLinks = (evidenceIds: string[], catalogById: Map<string, EvidenceCatalogEntry>, maxCount: number): string =>
+// 링크 주소: 괄호·공백이 있으면 마크다운 링크가 끊기므로 인코딩한다.
+const convertToLinkUrl = (url: string): string => url.replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/\s/g, '%20');
+
+/** 근거 링크를 길이 예산 안에서만 이어 붙인다. 예산을 넘는 링크는 중간에서 자르지 않고 통째로 뺀다. */
+const createEvidenceLinks = (
+  evidenceIds: string[],
+  catalogById: Map<string, EvidenceCatalogEntry>,
+  maxCount: number,
+  maxLength: number,
+): string =>
   evidenceIds
     .map((id) => catalogById.get(id))
     .filter((entry): entry is EvidenceCatalogEntry => entry !== undefined)
     .slice(0, maxCount)
-    .map(({ evidence }) => `[${convertToLinkLabel(createEvidenceLabel(evidence))}](${evidence.url})`)
+    .map(({ evidence }) => `[${convertToLinkLabel(createEvidenceLabel(evidence))}](${convertToLinkUrl(evidence.url)})`)
+    .reduce<string[]>((links, link) => {
+      const nextText = [...links, link].join(', ');
+      return nextText.length <= maxLength ? [...links, link] : links;
+    }, [])
     .join(', ');
 
 const createSubFeatureField = (subFeature: PlannerSubFeature, catalogById: Map<string, EvidenceCatalogEntry>): APIEmbedField => {
-  const links = createEvidenceLinks(subFeature.evidence_ids, catalogById, MAX_LINKS_PER_SUB_FEATURE);
-  // 링크 줄이 잘리면 마크다운이 깨지므로 설명만 줄이고 근거 줄은 온전히 남긴다.
-  const evidenceLine = links ? `\n근거: ${links}` : '\n근거: 확인한 근거 없음';
-  const descriptionMaxLength = Math.max(EMBED_FIELD_VALUE_MAX_LENGTH - evidenceLine.length, 0);
+  const linkBudget = EMBED_FIELD_VALUE_MAX_LENGTH - MIN_SUB_FEATURE_DESCRIPTION_LENGTH - EVIDENCE_LINE_PREFIX.length;
+  const links = createEvidenceLinks(subFeature.evidence_ids, catalogById, MAX_LINKS_PER_SUB_FEATURE, linkBudget);
+  // 근거 줄은 길이 예산 안에서 온전한 링크로만 만들고, 남는 길이만큼만 설명을 쓴다.
+  const evidenceLine = links ? `${EVIDENCE_LINE_PREFIX}${links}` : NO_EVIDENCE_LINE;
 
   return {
     name: truncateText(`${subFeature.name} · ${IMPLEMENTATION_STATUS_LABELS[subFeature.status]}`, EMBED_FIELD_NAME_MAX_LENGTH),
-    value: truncateText(`${truncateText(subFeature.description, descriptionMaxLength)}${evidenceLine}`, EMBED_FIELD_VALUE_MAX_LENGTH),
+    value: `${truncateText(subFeature.description, EMBED_FIELD_VALUE_MAX_LENGTH - evidenceLine.length)}${evidenceLine}`,
   };
 };
 
@@ -70,13 +95,13 @@ const getEmbedLength = ({ title = '', description = '', fields = [], footer }: A
   title.length + description.length + (footer?.text.length ?? 0) + fields.reduce((total, { name, value }) => total + name.length + value.length, 0);
 
 // 전체 6000자를 넘으면 세부 기능 필드를 뒤에서부터 줄인다 (확인하지 못한 범위·참고 필드는 유지).
-const trimEmbedToLimit = (embed: APIEmbed, subFeatureFieldCount: number): APIEmbed => {
+const convertToEmbedWithinLimit = (embed: APIEmbed, subFeatureFieldCount: number): APIEmbed => {
   const fields = embed.fields ?? [];
   if (getEmbedLength(embed) <= EMBED_TOTAL_MAX_LENGTH || subFeatureFieldCount === 0) {
     return embed;
   }
   const trimmedFields = [...fields.slice(0, subFeatureFieldCount - 1), ...fields.slice(subFeatureFieldCount)];
-  return trimEmbedToLimit({ ...embed, fields: trimmedFields }, subFeatureFieldCount - 1);
+  return convertToEmbedWithinLimit({ ...embed, fields: trimmedFields }, subFeatureFieldCount - 1);
 };
 
 interface CreatePlannerAnswerEmbedParams {
@@ -98,7 +123,12 @@ export const createPlannerAnswerEmbed = ({ intent, bundle, judgment, answer, cat
   // 세부 기능으로 묶지 못했으면 대표 근거라도 링크로 보여준다.
   const fallbackEvidenceField: APIEmbedField[] =
     subFeatureFields.length === 0 && catalog.length > 0
-      ? [{ name: '확인한 근거', value: createEvidenceLinks(catalog.map(({ id }) => id), catalogById, MAX_SUMMARY_LINKS) }]
+      ? [
+          {
+            name: '확인한 근거',
+            value: createEvidenceLinks(catalog.map(({ id }) => id), catalogById, MAX_SUMMARY_LINKS, EMBED_FIELD_VALUE_MAX_LENGTH),
+          },
+        ]
       : [];
   const noteField: APIEmbedField[] =
     answer.notes.length > 0
@@ -109,19 +139,17 @@ export const createPlannerAnswerEmbed = ({ intent, bundle, judgment, answer, cat
     value: truncateText(judgment.unverifiedScopes.join(', '), EMBED_FIELD_VALUE_MAX_LENGTH),
   };
 
-  const description = [
-    answer.summary,
-    '',
-    `확신 ${CONFIDENCE_LABEL[judgment.confidence]} · 진행 중 작업: ${createOpenWorkText(judgment)}`,
-  ].join('\n');
+  // 규칙 판정 기반의 확신·진행 중 작업 줄은 항상 남기고, 요약만 남는 길이에 맞춰 줄인다.
+  const judgmentLine = `\n\n확신 ${CONFIDENCE_LABEL[judgment.confidence]} · 진행 중 작업: ${createOpenWorkText(judgment)}`;
+  const description = `${truncateText(answer.summary, EMBED_DESCRIPTION_MAX_LENGTH - judgmentLine.length)}${judgmentLine}`;
 
   const embed: APIEmbed = {
     title: truncateText(`${intent.feature_name} — ${IMPLEMENTATION_STATUS_LABELS[judgment.status]}`, EMBED_TITLE_MAX_LENGTH),
-    description: truncateText(description, EMBED_DESCRIPTION_MAX_LENGTH),
+    description,
     color: STATUS_COLOR[judgment.status],
     fields: [...subFeatureFields, ...fallbackEvidenceField, ...noteField, unverifiedField],
     footer: { text: truncateText(`조회: ${createCheckedRefsText(bundle)} (KST)`, EMBED_FOOTER_MAX_LENGTH) },
   };
 
-  return trimEmbedToLimit(embed, subFeatureFields.length);
+  return convertToEmbedWithinLimit(embed, subFeatureFields.length);
 };

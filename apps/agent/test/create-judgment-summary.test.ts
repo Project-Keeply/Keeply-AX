@@ -17,7 +17,7 @@ const createJudgment = (overrides: Partial<ImplementationJudgment> = {}): Implem
 describe('createJudgmentSummary', () => {
   it('판정·근거·진행 중 작업·확인하지 못한 범위를 정해진 포맷으로 만든다', () => {
     expect(createJudgmentSummary(createJudgment())).toBe(
-      `📊 판정: 기본 브랜치 반영 · 확신 높음
+      `판정: 기본 브랜치 반영 · 확신 높음
 • 근거: 연결된 호출 흐름 3건, 병합된 PR 4건
 • 진행 중 작업: 없음
 • 확인하지 못한 범위: 실제 배포 여부, 실행 결과`,
@@ -45,7 +45,7 @@ describe('createJudgmentSummary', () => {
         reasons: [{ code: 'open_pull_request_code_change', count: 1, evidenceUrls: [] }],
       }),
     );
-    expect(summary).toContain('📊 판정: 작업 진행 중 · 확신 높음');
+    expect(summary).toContain('판정: 작업 진행 중 · 확신 높음');
     expect(summary).toContain('• 진행 중 작업: 열린 PR에서 코드 변경 중');
   });
 
@@ -53,7 +53,7 @@ describe('createJudgmentSummary', () => {
     const summary = createJudgmentSummary(
       createJudgment({ status: 'unverified', reasons: [{ code: 'no_evidence', count: 0, evidenceUrls: [] }] }),
     );
-    expect(summary).toContain('📊 판정: 구현 여부 확인 불가 · 확신 높음');
+    expect(summary).toContain('판정: 구현 여부 확인 불가 · 확신 높음');
     expect(summary).toContain('• 근거: 근거 없음');
   });
 });

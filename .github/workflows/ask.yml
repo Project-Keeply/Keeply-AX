@@ -68,6 +68,7 @@ jobs:
           DISCORD_APPLICATION_ID: ${{ vars.DISCORD_APPLICATION_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AX_INTENT_MODEL: ${{ vars.AX_INTENT_MODEL || 'claude-haiku-4-5' }}
+          AX_ANSWER_MODEL: ${{ vars.AX_ANSWER_MODEL || 'claude-haiku-4-5' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # agent는 apps/agent를 작업 디렉터리로 실행되므로 체크아웃 경로를 절대 경로로 넘긴다.
           AX_REPOS_DIR: ${{ github.workspace }}/repos

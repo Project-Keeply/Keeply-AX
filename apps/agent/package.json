@@ -8,7 +8,8 @@
     "typecheck": "tsc -p .",
     "test": "vitest run",
     "eval:intent": "tsx --env-file-if-exists=../../.env scripts/eval-intent.ts",
-    "collect:evidence": "tsx --env-file-if-exists=../../.env scripts/collect-evidence.ts"
+    "collect:evidence": "tsx --env-file-if-exists=../../.env scripts/collect-evidence.ts",
+    "eval:answer": "tsx --env-file-if-exists=../../.env scripts/eval-answer.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
+    "discord-api-types": "^0.38.55",
     "vitest": "^5.0.2"
   }
 }

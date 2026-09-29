@@ -6,7 +6,7 @@
  *
  * 자동으로 확인하는 항목
  * - LLM이 인용한 근거 ID가 모두 실제 근거 목록에 있는지 (없는 ID 수)
- * - 근거가 없어 확인 불가로 강등된 세부 기능 수
+ * - 인용한 근거가 뒷받침하지 않아 상태가 낮아진 세부 기능 수 (근거 없음 → 확인 불가 포함)
  * - embed가 Discord 길이 제한 안에 있는지
  * - 답변에 장식 이모지가 없는지
  * 설명 품질(업무 언어로 잘 풀었는지, 근거와 맞는지)은 출력된 embed를 사람이 읽고 판단한다.
@@ -23,8 +23,9 @@ import { getEvidenceBundle } from '../src/evidences/get-evidence-bundle';
 import { getAskIntent } from '../src/intents/get-ask-intent';
 import { getImplementationJudgment } from '../src/judgments/get-implementation-judgment';
 import { convertToVerifiedAnswer } from '../src/planner-answers/convert-to-verified-answer';
-import { createEvidenceCatalog } from '../src/planner-answers/create-evidence-catalog';
+import { createEvidenceCatalog, type EvidenceCatalogEntry } from '../src/planner-answers/create-evidence-catalog';
 import { getPlannerAnswer } from '../src/planner-answers/get-planner-answer';
+import type { PlannerAnswer } from '../src/planner-answers/planner-answer-schema';
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_MODEL = 'claude-haiku-4-5';
@@ -61,6 +62,13 @@ const getGithubToken = async (): Promise<string> => {
 const getEmbedLength = ({ title = '', description = '', fields = [], footer }: APIEmbed): number =>
   title.length + description.length + (footer?.text.length ?? 0) + fields.reduce((total, { name, value }) => total + name.length + value.length, 0);
 
+// 세부 기능을 하나씩 검증해 원래 세부 기능과 짝을 맞춘다 (이름이 빈 항목이 걸러져도 순서가 어긋나지 않게).
+const getDowngradedCount = (answer: PlannerAnswer, catalog: EvidenceCatalogEntry[]): number =>
+  answer.sub_features.filter((subFeature) => {
+    const [verifiedSubFeature] = convertToVerifiedAnswer({ summary: '', sub_features: [subFeature], notes: [] }, catalog).sub_features;
+    return verifiedSubFeature !== undefined && verifiedSubFeature.status !== subFeature.status;
+  }).length;
+
 const convertEmbedToText = ({ title, description, fields = [], footer }: APIEmbed): string =>
   [`# ${title}`, description, ...fields.map(({ name, value }) => `## ${name}\n${value}`), `(${footer?.text})`].join('\n\n');
 
@@ -88,9 +96,7 @@ const evaluateQuestion = async (question: string, apiKey: string, githubToken: s
   return {
     question,
     invalidIdCount: citedIds.filter((id) => !validIds.has(id.trim())).length,
-    downgradedCount: verifiedAnswer.sub_features.filter(
-      ({ status }, index) => status === 'unverified' && answer.sub_features[index]?.status !== 'unverified',
-    ).length,
+    downgradedCount: getDowngradedCount(answer, catalog),
     isWithinLimit: getEmbedLength(embed) <= EMBED_TOTAL_MAX_LENGTH,
     isEmojiIncluded: PICTOGRAPHIC_PATTERN.test(embedText),
     inputTokens: usage.inputTokens,
